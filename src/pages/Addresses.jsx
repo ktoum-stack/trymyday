@@ -2,11 +2,15 @@ import { Container, Card, Button, Row, Col, Modal, Form, Alert } from 'react-boo
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 import ProfileLayout from '../components/ProfileLayout';
+import { useLanguage } from '../context/LanguageContext';
 
 const Addresses = () => {
     const { user } = useAuth();
+    const { showToast, confirm } = useToast();
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const [showModal, setShowModal] = useState(false);
     const [editingAddress, setEditingAddress] = useState(null);
 
@@ -32,15 +36,15 @@ const Addresses = () => {
         return (
             <ProfileLayout>
                 <div className="mb-4">
-                    <h3 className="fw-bold">Mes adresses</h3>
-                    <p className="text-muted">Gérez vos adresses de livraison</p>
+                    <h3 className="fw-bold">{t('addresses.title')}</h3>
+                    <p className="text-muted">{t('addresses.subtitle')}</p>
                 </div>
                 <Container className="py-5 text-center">
                     <Alert variant="info">
-                        <Alert.Heading>Connexion requise</Alert.Heading>
-                        <p>Vous devez être connecté pour gérer vos adresses.</p>
+                        <Alert.Heading>{t('favorites_page.login_required')}</Alert.Heading>
+                        <p>{t('addresses.subtitle')}</p>
                         <Button variant="primary" onClick={() => navigate('/login')}>
-                            Se connecter
+                            {t('auth.login_btn')}
                         </Button>
                     </Alert>
                 </Container>
@@ -74,7 +78,7 @@ const Addresses = () => {
 
     const handleSaveAddress = () => {
         if (!formData.title || !formData.fullName || !formData.address || !formData.city) {
-            alert('Veuillez remplir tous les champs obligatoires');
+            showToast(t('addresses.fill_required'), 'warning');
             return;
         }
 
@@ -94,10 +98,18 @@ const Addresses = () => {
         setShowModal(false);
     };
 
-    const handleDeleteAddress = (id) => {
-        if (window.confirm('Êtes-vous sûr de vouloir supprimer cette adresse ?')) {
+    const handleDeleteAddress = async (id) => {
+        const ok = await confirm({
+            title: t('addresses.delete_confirm_title'),
+            message: t('addresses.delete_confirm_msg'),
+            variant: 'danger',
+            confirmText: t('common.delete')
+        });
+
+        if (ok) {
             const newAddresses = addresses.filter(addr => addr.id !== id);
             saveAddresses(newAddresses);
+            showToast(t('addresses.delete_success'), 'success');
         }
     };
 
@@ -106,21 +118,21 @@ const Addresses = () => {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2 className="fw-bold">
                     <i className="bi bi-geo-alt-fill me-2"></i>
-                    Mes Adresses
+                    {t('addresses.title')}
                 </h2>
                 <Button variant="warning" className="text-white fw-bold" onClick={() => handleOpenModal()}>
                     <i className="bi bi-plus-lg me-2"></i>
-                    Nouvelle adresse
+                    {t('addresses.add_new')}
                 </Button>
             </div>
 
             {addresses.length === 0 ? (
                 <div className="text-center py-5">
                     <i className="bi bi-house" style={{ fontSize: '5rem', color: '#ddd' }}></i>
-                    <h3 className="mt-4 text-muted">Aucune adresse enregistrée</h3>
-                    <p className="text-muted mb-4">Ajoutez une adresse pour faciliter vos commandes</p>
+                    <h3 className="mt-4 text-muted">{t('addresses.no_addresses')}</h3>
+                    <p className="text-muted mb-4">{t('addresses.add_first')}</p>
                     <Button variant="warning" className="text-white fw-bold" onClick={() => handleOpenModal()}>
-                        Ajouter une adresse
+                        {t('addresses.add_btn')}
                     </Button>
                 </div>
             ) : (
@@ -167,15 +179,15 @@ const Addresses = () => {
             {/* Add/Edit Address Modal */}
             <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
                 <Modal.Header closeButton>
-                    <Modal.Title>{editingAddress ? 'Modifier l\'adresse' : 'Nouvelle adresse'}</Modal.Title>
+                    <Modal.Title>{editingAddress ? t('addresses.edit_title') : t('addresses.new_title')}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <Form>
                         <Form.Group className="mb-3">
-                            <Form.Label>Titre de l'adresse *</Form.Label>
+                            <Form.Label>{t('addresses.address_title_label')} *</Form.Label>
                             <Form.Control
                                 type="text"
-                                placeholder="Ex: Maison, Bureau, etc."
+                                placeholder={t('addresses.placeholder_title')}
                                 value={formData.title}
                                 onChange={e => setFormData({ ...formData, title: e.target.value })}
                             />
@@ -184,7 +196,7 @@ const Addresses = () => {
                         <Row>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Nom complet *</Form.Label>
+                                    <Form.Label>{t('addresses.full_name_label')} *</Form.Label>
                                     <Form.Control
                                         type="text"
                                         value={formData.fullName}
@@ -194,7 +206,7 @@ const Addresses = () => {
                             </Col>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Téléphone</Form.Label>
+                                    <Form.Label>{t('addresses.phone_label')}</Form.Label>
                                     <Form.Control
                                         type="tel"
                                         value={formData.phone}
@@ -205,7 +217,7 @@ const Addresses = () => {
                         </Row>
 
                         <Form.Group className="mb-3">
-                            <Form.Label>Adresse complète *</Form.Label>
+                            <Form.Label>{t('addresses.address_label')} *</Form.Label>
                             <Form.Control
                                 as="textarea"
                                 rows={2}
@@ -213,11 +225,12 @@ const Addresses = () => {
                                 onChange={e => setFormData({ ...formData, address: e.target.value })}
                             />
                         </Form.Group>
+# (re-translating specific "Connexion requise" message if I find a better key)
 
                         <Row>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Ville *</Form.Label>
+                                    <Form.Label>{t('addresses.city_label')} *</Form.Label>
                                     <Form.Control
                                         type="text"
                                         value={formData.city}
@@ -227,7 +240,7 @@ const Addresses = () => {
                             </Col>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Code postal</Form.Label>
+                                    <Form.Label>{t('addresses.postal_code_label')}</Form.Label>
                                     <Form.Control
                                         type="text"
                                         value={formData.postalCode}
@@ -238,7 +251,7 @@ const Addresses = () => {
                         </Row>
 
                         <Form.Group className="mb-3">
-                            <Form.Label>Pays</Form.Label>
+                            <Form.Label>{t('addresses.country_label')}</Form.Label>
                             <Form.Select
                                 value={formData.country}
                                 onChange={e => setFormData({ ...formData, country: e.target.value })}
@@ -444,10 +457,10 @@ const Addresses = () => {
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setShowModal(false)}>
-                        Annuler
+                        {t('common.cancel')}
                     </Button>
                     <Button variant="warning" className="text-white fw-bold" onClick={handleSaveAddress}>
-                        Enregistrer
+                        {t('addresses.save_btn')}
                     </Button>
                 </Modal.Footer>
             </Modal>

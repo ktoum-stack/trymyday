@@ -31,25 +31,29 @@ export const FavoritesProvider = ({ children }) => {
     }, [user]);
 
     const addToFavorites = (productId) => {
-        if (!favorites.includes(productId)) {
-            setFavorites([...favorites, productId]);
+        const idStr = productId?.toString();
+        if (!favorites.some(id => id?.toString() === idStr)) {
+            setFavorites([...favorites, idStr]);
         }
     };
 
     const removeFromFavorites = (productId) => {
-        setFavorites(favorites.filter(id => id !== productId));
+        const idStr = productId?.toString();
+        setFavorites(favorites.filter(id => id?.toString() !== idStr));
     };
 
     const toggleFavorite = (productId) => {
-        if (favorites.includes(productId)) {
-            removeFromFavorites(productId);
+        const idStr = productId?.toString();
+        if (favorites.some(id => id?.toString() === idStr)) {
+            removeFromFavorites(idStr);
         } else {
-            addToFavorites(productId);
+            addToFavorites(idStr);
         }
     };
 
     const isFavorite = (productId) => {
-        return favorites.includes(productId);
+        const idStr = productId?.toString();
+        return favorites.some(id => id?.toString() === idStr);
     };
 
     const clearFavorites = () => {

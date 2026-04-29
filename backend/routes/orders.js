@@ -3,6 +3,7 @@ const router = express.Router();
 const fs = require('fs').promises;
 const path = require('path');
 const { sendEmail, emailTemplates } = require('../utils/emailService');
+const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleware');
 
 const ORDERS_FILE = path.join(__dirname, '../data/orders.json');
 
@@ -22,7 +23,7 @@ async function saveOrders(orders) {
 }
 
 // GET /api/orders - Get all orders
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
     try {
         const orders = await getOrders();
         res.json(orders);
@@ -44,7 +45,7 @@ router.get('/user/:email', async (req, res) => {
 });
 
 // POST /api/orders - Create new order
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
     try {
         const newOrder = req.body;
         const orders = await getOrders();
@@ -120,7 +121,7 @@ router.put('/:id/status', async (req, res) => {
 });
 
 // PUT /api/orders/:id - Update full order (e.g. for cancellation details)
-router.put('/:id', async (req, res) => {
+router.put('/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
         const updates = req.body;

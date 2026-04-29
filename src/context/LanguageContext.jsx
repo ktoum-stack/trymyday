@@ -1,63 +1,50 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import '../i18n';
+import '../styles/rtl.css';
+
+import { translateText } from '../utils/translator';
 
 const LanguageContext = createContext();
 
 export const LanguageProvider = ({ children }) => {
-    const [language, setLanguage] = useState(localStorage.getItem('language') || 'FR');
+    const { i18n, t } = useTranslation();
+    const [language, setLanguageState] = useState(localStorage.getItem('language') || 'FR');
 
-    useEffect(() => {
-        localStorage.setItem('language', language);
-        document.documentElement.lang = language.toLowerCase();
-        document.documentElement.dir = language === 'AR' ? 'rtl' : 'ltr';
-
-        // Trigger Google Translate
-        const translateElement = document.querySelector('.goog-te-combo');
-        if (translateElement) {
-            translateElement.value = language.toLowerCase();
-            translateElement.dispatchEvent(new Event('change'));
-        } else {
-            // If the element is not ready yet, we try a more direct approach for Google Translate widget
-            const googleWidget = document.querySelector('.goog-te-gadget-simple');
-            if (googleWidget) {
-                const innerSpan = Array.from(document.querySelectorAll('span')).find(el =>
-                    el.textContent.includes('Select Language') || el.textContent.includes('Sélectionner')
-                );
-                if (innerSpan) innerSpan.click();
-            }
-        }
-    }, [language]);
-
-    const changeLanguage = (lang) => {
-        setLanguage(lang);
-
-        // Google Translate uses a specific cookie/dropdown system.
-        // We set the cookie that Google Translate looks for.
-        // Format: /fr/[lang_code]
-        const langValue = lang.toLowerCase();
-        document.cookie = `googtrans=/fr/${langValue}; path=/`;
-        document.cookie = `googtrans=/fr/${langValue}; path=/; domain=${window.location.hostname}`;
-
-        // Refresh page to force Google Translate to apply (it's the most reliable way)
-        window.location.reload();
+    const translate = async (text) => {
+        return await translateText(text, language.toLowerCase());
     };
 
-    // Helper to protect text from being translated (like prices/numbers)
+    useEffect(() => {
+        const lang = language.toLowerCase();
+        i18n.changeLanguage(lang);
+        document.documentElement.lang = lang;
+        
+        const isRTL = lang === 'ar';
+        document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+        
+        if (isRTL) {
+            document.body.classList.add('rtl-mode');
+        } else {
+            document.body.classList.remove('rtl-mode');
+        }
+        
+        localStorage.setItem('language', language);
+    }, [language, i18n]);
+
+    const setLanguage = (lang) => {
+        setLanguageState(lang);
+    };
+
+    // Helper to protect text from being translated
     const NoTranslate = ({ children, className = "" }) => (
         <span className={`notranslate ${className}`} translate="no">
             {children}
         </span>
     );
 
-    // Fallback translation function for components still using it
-    const t = (key) => {
-        if (!key) return "";
-        const parts = key.split('.');
-        return parts[parts.length - 1];
-    };
-
     return (
-        <LanguageContext.Provider value={{ language, setLanguage: changeLanguage, NoTranslate, t }}>
-            <div id="google_translate_element" style={{ display: 'none' }}></div>
+        <LanguageContext.Provider value={{ language, setLanguage, NoTranslate, t, translate }}>
             {children}
         </LanguageContext.Provider>
     );

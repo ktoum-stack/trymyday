@@ -23,18 +23,21 @@ async function saveUsers(users) {
 router.post('/register', async (req, res) => {
     try {
         const { name, email, password } = req.body;
-        const normalizedEmail = email.toLowerCase();
+        const normalizedEmail = email.toLowerCase().trim();
         const users = await getUsers();
 
         if (users.find(u => u.email.toLowerCase() === normalizedEmail)) {
-            return res.status(400).json({ message: 'Email already exists' });
+            return res.status(400).json({ message: 'Cet email est déjà utilisé' });
         }
+
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = {
             id: Math.floor(10000000 + Math.random() * 90000000).toString(),
             name,
             email: normalizedEmail,
-            password,
+            password: hashedPassword,
             role: 'client',
             walletBalance: 0,
             joined: new Date().toISOString().split('T')[0],
@@ -44,12 +47,11 @@ router.post('/register', async (req, res) => {
         users.push(newUser);
         await saveUsers(users);
 
-        // Notify user (Automatic Email)
-        sendEmail(emailTemplates.welcome(newUser))
-            .then(() => console.log('Welcome email sent to:', newUser.email))
-            .catch(err => console.error('Failed to send welcome email:', err));
+        // JWT Generation
+        const jwt = require('jsonwebtoken');
+        const token = jwt.sign({ id: newUser.id, email: newUser.email, role: newUser.role }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
 
-        res.status(201).json(newUser);
+        res.status(201).json({ user: { ...newUser, password: undefined }, token });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -59,7 +61,8 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const normalizedEmail = email.toLowerCase();
+        const normalizedEmail = email.toLowerCase().trim();
+        const normalizedPassword = password.trim();
         const users = await getUsers();
 
         // Special Admin Bypass check
@@ -91,14 +94,35 @@ router.post('/login', async (req, res) => {
         const user = users.find(u => u.email.toLowerCase() === normalizedEmail);
 
         if (!user) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
         }
 
-        if (user.password && user.password !== password) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+        const bcrypt = require('bcryptjs');
+
+        // Compare password with bcrypt
+        let isMatch = false;
+        try {
+            isMatch = await bcrypt.compare(normalizedPassword, user.password);
+        } catch (e) {
+            // Ignore bcrypt errors (e.g. if it's plaintext)
+        }
+        
+        // Legacy Support: If bcrypt fails but it matches plaintext, hash it and save!
+        if (!isMatch && user.password === normalizedPassword) {
+            user.password = await bcrypt.hash(normalizedPassword, 10);
+            await saveUsers(users);
+            isMatch = true;
         }
 
-        res.json({ ...user, balance: user.walletBalance });
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Email ou mot de passe incorrect' });
+        }
+
+        // Generate JWT
+        const jwt = require('jsonwebtoken');
+        const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET || 'fallback_secret', { expiresIn: '7d' });
+
+        res.json({ user: { ...user, balance: user.walletBalance, password: undefined }, token });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useWallet } from '../context/WalletContext';
 import ProfileLayout from '../components/ProfileLayout';
+import { useLanguage } from '../context/LanguageContext';
 import API_BASE_URL from '../config';
 
 const Wallet = () => {
@@ -12,6 +13,7 @@ const Wallet = () => {
     const [transferStatus, setTransferStatus] = useState({ type: '', message: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showTransferModal, setShowTransferModal] = useState(false);
+    const { t, language } = useLanguage();
 
     const [visibleTransactions, setVisibleTransactions] = useState(5);
 
@@ -28,27 +30,27 @@ const Wallet = () => {
         setTransferStatus({ type: '', message: '' });
 
         if (parseFloat(transferData.amount) > balance) {
-            setTransferStatus({ type: 'danger', message: 'Solde insuffisant pour ce transfert' });
+            setTransferStatus({ type: 'danger', message: t('wallet.insufficient_balance') });
             setIsSubmitting(false);
             return;
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/wallet/transfer`, {
+            const response = await authFetch(`${API_BASE_URL}/api/wallet/transfer`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     fromEmail: user.email,
                     toEmail: transferData.toId,
                     amount: parseFloat(transferData.amount),
-                    description: transferData.description || `Transfert de ${user.name}`
+                    description: transferData.description || `${t('wallet.transfer')} de ${user.name}`
                 })
             });
 
             const data = await response.json();
 
             if (data.success) {
-                setTransferStatus({ type: 'success', message: 'Transfert effectué avec succès !' });
+                setTransferStatus({ type: 'success', message: t('wallet.transfer_success') });
                 setTransferData({ toId: '', amount: '', description: '' });
                 setTimeout(() => {
                     setShowTransferModal(false);
@@ -57,10 +59,10 @@ const Wallet = () => {
                 fetchBalance();
                 fetchTransactions();
             } else {
-                setTransferStatus({ type: 'danger', message: data.message || 'Erreur lors du transfert' });
+                setTransferStatus({ type: 'danger', message: data.message || t('wallet.transfer_error') });
             }
         } catch (error) {
-            setTransferStatus({ type: 'danger', message: 'Impossible de contacter le serveur' });
+            setTransferStatus({ type: 'danger', message: t('wallet.server_error') });
         } finally {
             setIsSubmitting(false);
         }
@@ -70,8 +72,8 @@ const Wallet = () => {
         return (
             <div className="py-5 text-center">
                 <Alert variant="warning">
-                    <Alert.Heading>Connexion requise</Alert.Heading>
-                    <p>Veuillez vous connecter pour accéder à votre portefeuille.</p>
+                    <Alert.Heading>{t('favorites_page.login_required')}</Alert.Heading>
+                    <p>{t('cart.login_to_checkout')}</p>
                 </Alert>
             </div>
         );
@@ -81,54 +83,59 @@ const Wallet = () => {
         <ProfileLayout>
             <h3 className="mb-4 fw-bold">
                 <i className="bi bi-coin me-2"></i>
-                Mon portefeuille
+                {t('wallet.title')}
             </h3>
 
             <Row className="g-4">
-                {/* Wallet Balance & Transfer - Left Column (lg=4) */}
-                <Col lg={4} className="order-2 order-lg-1">
-                    <Card className="border-0 shadow-sm mb-4">
-                        <Card.Body className="p-4 text-center">
-                            <h6 className="text-muted mb-1 small">Solde disponible</h6>
-                            <h2 className="text-warning fw-bold mb-3">{balance.toLocaleString()} FCFA</h2>
-
-                            <Alert variant="info" className="mb-3 text-start py-2 px-3 border-0 bg-light">
-                                <small>
-                                    <i className="bi bi-info-circle me-2 text-info"></i>
-                                    Utilisez votre solde pour effectuer des achats sans carte bancaire.
-                                </small>
-                            </Alert>
-
-                            <Button
-                                variant="warning"
-                                size="sm"
-                                className="fw-bold text-white px-4 rounded-pill w-100 py-2"
-                                onClick={() => setShowTransferModal(true)}
-                            >
-                                <i className="bi bi-send me-2"></i>
-                                Faire un transfert
-                            </Button>
+                {/* Compact Mini-Wallet Card */}
+                <Col lg={5} md={7} xs={12}>
+                    <Card className="border-0 shadow-sm mb-4" style={{ borderRadius: '12px', borderLeft: '4px solid #ff6000' }}>
+                        <Card.Body className="p-3">
+                            <div className="d-flex align-items-center justify-content-between">
+                                <div className="d-flex align-items-center">
+                                    <div className="bg-warning bg-opacity-10 p-2 rounded-circle me-3">
+                                        <i className="bi bi-wallet2 text-warning fs-5"></i>
+                                    </div>
+                                    <div>
+                                        <small className="text-muted fw-bold text-uppercase" style={{ fontSize: '0.65rem', letterSpacing: '0.5px' }}>{t('wallet.balance')}</small>
+                                        <h4 className="fw-bolder mb-0 text-dark">{(balance !== undefined ? balance : 0).toLocaleString()} <span className="fs-6 fw-normal">FCFA</span></h4>
+                                    </div>
+                                </div>
+                                <Button
+                                    variant="outline-warning"
+                                    size="sm"
+                                    className="rounded-pill px-3 py-1 fw-bold"
+                                    style={{ fontSize: '0.75rem', borderWidth: '1.5px' }}
+                                    onClick={() => setShowTransferModal(true)}
+                                >
+                                    <i className="bi bi-arrow-left-right me-1"></i>
+                                    {t('wallet.transfer')}
+                                </Button>
+                            </div>
                         </Card.Body>
                     </Card>
                 </Col>
 
-                {/* Transactions History - Right Column (lg=8) */}
-                <Col lg={8} className="order-1 order-lg-2">
+                {/* Transactions History - Below card on mobile, Right on desktop */}
+                <Col lg={8}>
                     <Card className="border-0 shadow-sm">
-                        <Card.Header className="bg-white p-4 text-warning">
-                            <h5 className="mb-0 fw-bold"><i className="bi bi-clock-history me-2"></i>Historique des transactions</h5>
+                        <Card.Header className="bg-white p-3 border-bottom">
+                            <h6 className="mb-0 fw-bold text-dark">
+                                <i className="bi bi-clock-history me-2 text-warning"></i>
+                                {t('wallet.history')}
+                            </h6>
                         </Card.Header>
                         <Card.Body className="p-0">
                             {loading ? (
                                 <div className="text-center p-5">
                                     <div className="spinner-border text-warning" role="status">
-                                        <span className="visually-hidden">Chargement...</span>
+                                        <span className="visually-hidden">{t('common.loading')}</span>
                                     </div>
                                 </div>
                             ) : transactions.length === 0 ? (
                                 <div className="text-center p-5 text-muted">
                                     <i className="bi bi-receipt mb-3 d-block" style={{ fontSize: '3rem' }}></i>
-                                    <p>Aucune transaction pour le moment</p>
+                                    <p>{t('wallet.no_transactions')}</p>
                                 </div>
                             ) : (
                                 <>
@@ -145,13 +152,13 @@ const Wallet = () => {
                                                             <div className="d-flex align-items-center mb-1 flex-wrap gap-2">
                                                                 <Badge bg={isCancelled ? 'secondary' : (tx.type === 'credit' ? 'success' : 'danger')} className="px-2" style={{ borderRadius: '6px', fontSize: '0.7rem' }}>
                                                                     {isCancelled ? (
-                                                                        <><i className="bi bi-x-circle me-1"></i> ANNULÉE</>
+                                                                        <><i className="bi bi-x-circle me-1"></i> {t('wallet.cancelled')}</>
                                                                     ) : tx.description?.toLowerCase().includes('remboursement') ? (
-                                                                        <><i className="bi bi-arrow-return-left me-1"></i> REMBOURSEMENT</>
+                                                                        <><i className="bi bi-arrow-return-left me-1"></i> {t('wallet.refund')}</>
                                                                     ) : tx.type === 'credit' ? (
-                                                                        <><i className="bi bi-arrow-down-circle me-1"></i> TRANSFERT</>
+                                                                        <><i className="bi bi-arrow-down-circle me-1"></i> {t('wallet.transfer').toUpperCase()}</>
                                                                     ) : (
-                                                                        <><i className="bi bi-cart-check me-1"></i> ACHAT</>
+                                                                        <><i className="bi bi-cart-check me-1"></i> {t('wallet.purchase')}</>
                                                                     )}
                                                                 </Badge>
                                                                 <span className={`fw-bold ${isCancelled ? 'text-muted text-decoration-line-through' : (tx.type === 'credit' ? 'text-success' : 'text-danger')}`} style={{ fontSize: '0.95rem' }}>
@@ -163,7 +170,7 @@ const Wallet = () => {
                                                             </div>
                                                             <div className="text-muted" style={{ fontSize: '0.75rem' }}>
                                                                 <i className="bi bi-calendar3 me-1"></i>
-                                                                {new Date(tx.date).toLocaleString('fr-FR', {
+                                                                {new Date(tx.date).toLocaleString(language === 'AR' ? 'ar-EG' : language === 'EN' ? 'en-US' : 'fr-FR', {
                                                                     day: '2-digit',
                                                                     month: '2-digit',
                                                                     year: 'numeric',
@@ -176,18 +183,18 @@ const Wallet = () => {
                                                         <div className="bg-white p-2 rounded-3 border shadow-sm" style={{ minWidth: '180px' }}>
                                                             <div className="d-flex flex-column gap-0">
                                                                 <div className="d-flex justify-content-between" style={{ fontSize: '0.75rem', opacity: 0.8 }}>
-                                                                    <span>Ancien solde:</span>
+                                                                    <span>{t('wallet.old_balance')}:</span>
                                                                     <span>{balanceBefore.toLocaleString()} FCFA</span>
                                                                 </div>
                                                                 <div className="d-flex justify-content-between fw-bold" style={{ fontSize: '0.75rem' }}>
-                                                                    <span>{tx.type === 'credit' ? 'Reçu:' : 'Débit:'}</span>
+                                                                    <span>{tx.type === 'credit' ? `${t('wallet.received')}:` : `${t('wallet.debit')}:`}</span>
                                                                     <span className={isCancelled ? 'text-decoration-line-through' : (tx.type === 'credit' ? 'text-success' : 'text-danger')}>
                                                                         {operator}{tx.amount.toLocaleString()} FCFA
                                                                     </span>
                                                                 </div>
                                                                 <hr className="my-1 opacity-25" />
                                                                 <div className="d-flex justify-content-between align-items-center">
-                                                                    <span className="fw-bold" style={{ fontSize: '0.75rem' }}>Nouveau :</span>
+                                                                    <span className="fw-bold" style={{ fontSize: '0.75rem' }}>{t('wallet.new_balance')} :</span>
                                                                     <span className={`fw-bold ${isCancelled ? 'text-muted' : 'text-warning'}`} style={{ fontSize: '0.9rem' }}>
                                                                         {tx.balanceAfter.toLocaleString()} FCFA
                                                                     </span>
@@ -206,7 +213,7 @@ const Wallet = () => {
                                                 className="text-warning fw-bold text-decoration-none"
                                                 onClick={() => setVisibleTransactions(prev => prev + 10)}
                                             >
-                                                Voir plus <i className="bi bi-plus-lg ms-1"></i>
+                                                {t('wallet.view_more')} <i className="bi bi-plus-lg ms-1"></i>
                                             </Button>
                                         </div>
                                     )}
@@ -226,7 +233,7 @@ const Wallet = () => {
             >
                 <Modal.Header closeButton className="border-0 pb-0">
                     <Modal.Title className="fw-bold">
-                        <i className="bi bi-send me-2 text-warning"></i>Faire un transfert
+                        <i className="bi bi-send me-2 text-warning"></i>{t('wallet.transfer_modal_title')}
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="p-4">
@@ -238,25 +245,25 @@ const Wallet = () => {
 
                     <Form onSubmit={handleTransfer}>
                         <Form.Group className="mb-3">
-                            <Form.Label className="small fw-bold text-muted">ID du Compte (ex: 5RMEEQUT)</Form.Label>
+                            <Form.Label className="small fw-bold text-muted">{t('wallet.account_id_label')} (ex: 5RMEEQUT)</Form.Label>
                             <Form.Control
                                 type="text"
-                                placeholder="Saisissez l'ID du destinataire"
+                                placeholder={t('wallet.account_id_placeholder')}
                                 value={transferData.toId}
                                 onChange={(e) => setTransferData({ ...transferData, toId: e.target.value })}
                                 required
                                 className="bg-light border-0"
                             />
                             <Form.Text className="text-muted small">
-                                L'ID se trouve sur le profil du destinataire.
+                                {t('wallet.id_help')}
                             </Form.Text>
                         </Form.Group>
 
                         <Form.Group className="mb-3">
-                            <Form.Label className="small fw-bold text-muted">Montant (FCFA)</Form.Label>
+                            <Form.Label className="small fw-bold text-muted">{t('wallet.amount_label')} (FCFA)</Form.Label>
                             <Form.Control
                                 type="number"
-                                placeholder="Ex: 5000"
+                                placeholder={t('wallet.amount_placeholder')}
                                 value={transferData.amount}
                                 onChange={(e) => setTransferData({ ...transferData, amount: e.target.value })}
                                 required
@@ -266,11 +273,11 @@ const Wallet = () => {
                         </Form.Group>
 
                         <Form.Group className="mb-4">
-                            <Form.Label className="small fw-bold text-muted">Description (Optionnel)</Form.Label>
+                            <Form.Label className="small fw-bold text-muted">{t('wallet.description_label')}</Form.Label>
                             <Form.Control
                                 as="textarea"
                                 rows={2}
-                                placeholder="Ex: Pour le déjeuner"
+                                placeholder={t('wallet.description_placeholder')}
                                 value={transferData.description}
                                 onChange={(e) => setTransferData({ ...transferData, description: e.target.value })}
                                 className="bg-light border-0"
@@ -286,10 +293,10 @@ const Wallet = () => {
                             {isSubmitting ? (
                                 <>
                                     <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                    Traitement...
+                                    {t('common.loading')}
                                 </>
                             ) : (
-                                'Confirmer le transfert'
+                                t('wallet.confirm_transfer')
                             )}
                         </Button>
                     </Form>
@@ -302,3 +309,16 @@ const Wallet = () => {
 };
 
 export default Wallet;
+
+
+// Auto-Injected fetch wrapper for JWT
+const authFetch = async (url, options = {}) => {
+    const token = localStorage.getItem('token');
+    if (token && url.includes('/api/')) {
+        options.headers = {
+            ...options.headers,
+            'Authorization': 'Bearer ' + token,
+        };
+    }
+    return fetch(url, options);
+};

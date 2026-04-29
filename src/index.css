@@ -105,16 +105,21 @@ body {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-    width: 10px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: #f8f9fa;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 5px;
+    background: #ced4da;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #adb5bd;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -198,4 +203,86 @@ body {
     margin-left: auto;
     padding-right: var(--bs-gutter-x, 1rem);
     padding-left: var(--bs-gutter-x, 1rem);
+}
+
+/* UI Utilities */
+.hover-shadow:hover {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08) !important;
+    transform: translateY(-2px);
+}
+
+.shadow-hover:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05) !important;
+}
+
+.hover-bg-white:hover {
+    background-color: white !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+.hover-warning:hover {
+    border-color: var(--trendyol-orange) !important;
+    background-color: rgba(242, 122, 26, 0.1) !important;
+}
+
+.hover-warning:hover i {
+    color: var(--trendyol-orange) !important;
+}
+
+.transition-all {
+    transition: all 0.3s ease !important;
+}
+
+.rounded-4 {
+    border-radius: 1rem !important;
+}
+
+.rounded-5 {
+    border-radius: 1.5rem !important;
+}
+
+.font-size-sm {
+    font-size: 0.825rem !important;
+}
+
+.font-size-xs {
+    font-size: 0.75rem !important;
+}
+
+.compact-list-item {
+    padding: 1rem 1.25rem !important;
+}
+
+.text-orange {
+    color: var(--trendyol-orange) !important;
+}
+
+.hover-bg-light:hover {
+    background-color: #f1f3f5 !important;
+}
+
+.letter-spacing-1 {
+    letter-spacing: 0.5px;
+}
+
+.rotate-180 {
+    transform: rotate(180deg) !important;
+}
+
+.transition-all {
+    transition: all 0.3s ease-in-out !important;
+}
+
+.hover-text-warning:hover {
+    color: #f39d48ff !important;
+    transition: all 0.2s ease;
+}
+
+.hover-opacity-100:hover {
+    opacity: 1 !important;
+    transition: all 0.2s ease;
+}
+
+.rotate-90 {
+    transform: rotate(90deg) !important;
 }

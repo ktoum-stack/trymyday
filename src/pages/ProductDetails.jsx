@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Button, Badge, Breadcrumb, Form, Card, Modal } from 'react-bootstrap';
 import { useData } from '../context/DataContext';
@@ -7,7 +7,30 @@ import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import ProductCard from '../components/ProductCard';
 
-import { toast } from 'react-toastify';
+import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
+import TranslatedText from '../components/TranslatedText';
+
+// ── Flash Sale Countdown hook ─────────────────────────────────────────────────
+const useFlashCountdown = (endDate, t) => {
+    const [timeLeft, setTimeLeft] = useState('');
+    const timerRef = useRef(null);
+    useEffect(() => {
+        if (!endDate) return;
+        const compute = () => {
+            const diff = new Date(endDate) - new Date();
+            if (diff <= 0) { setTimeLeft(t('product_details.terminated')); clearInterval(timerRef.current); return; }
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            setTimeLeft(`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`);
+        };
+        compute();
+        timerRef.current = setInterval(compute, 1000);
+        return () => clearInterval(timerRef.current);
+    }, [endDate, t]);
+    return timeLeft;
+};
 
 const ProductDetails = () => {
     const { id } = useParams();
@@ -15,12 +38,19 @@ const ProductDetails = () => {
     const { products, reviews, addReview, orders } = useData();
     const { user } = useAuth();
     const { addToCart } = useCart();
-    const { isFavorite, toggleFavorite } = useFavorites();
+    const { toggleFavorite, isFavorite } = useFavorites();
+    const { showToast } = useToast();
+    const { t, language } = useLanguage();
 
-    const product = products.find(p => p.id === parseInt(id));
+    // Button state for visual feedback
+    const [isAdded, setIsAdded] = useState(false);
+
+    const product = products.find(p => p.id?.toString() === id?.toString());
 
     const [selectedImage, setSelectedImage] = useState('');
     const [selectedColor, setSelectedColor] = useState(null);
+    const [activeColorVariant, setActiveColorVariant] = useState(null); // full variant object
+    const [currentGalleryImages, setCurrentGalleryImages] = useState([]); // images shown in gallery
     const [selectedSize, setSelectedSize] = useState(null);
     const [selectedStorage, setSelectedStorage] = useState(null);
     const [userRating, setUserRating] = useState(5);
@@ -113,7 +143,7 @@ const ProductDetails = () => {
         delivery.setDate(today.getDate() + daysToAdd);
 
         const options = { weekday: 'long', day: 'numeric', month: 'long' };
-        return delivery.toLocaleDateString('fr-FR', options);
+        return delivery.toLocaleDateString(language === 'AR' ? 'ar-EG' : language === 'EN' ? 'en-US' : 'fr-FR', options);
     };
 
 
@@ -129,22 +159,25 @@ const ProductDetails = () => {
 
     useEffect(() => {
         if (product) {
-            setSelectedImage(product.image || (product.images && product.images[0]));
-            // Don't auto-select color/size to force mandatory selection
+            const imgs = product.images && product.images.length > 0 ? product.images : [product.image].filter(Boolean);
+            setCurrentGalleryImages(imgs);
+            setSelectedImage(imgs[0] || '');
+            setSelectedColor(null);
+            setActiveColorVariant(null);
             setDeliveryDate(calculateDeliveryDate(selectedCity));
         }
         window.scrollTo(0, 0);
     }, [product, id]);
 
     if (!product) {
-        return <Container className="py-5 text-center mt-5"><h3>Produit non trouvé</h3></Container>;
+        return <Container className="py-5 text-center mt-5"><h3>{t('product_details.not_found')}</h3></Container>;
     }
 
     const isClothing = ['Mode', 'Vêtements', 'Robes', 'Chemises', 'Pantalons', 'Robe Bohème Chic'].includes(product.category) || product.category.toLowerCase().includes('robe') || product.category.toLowerCase().includes('vetement');
     const isShoes = ['Chaussures', 'Sacs'].includes(product.category) || product.category.toLowerCase().includes('chaussure');
     const isTech = ['Électronique', 'Téléphones', 'Ordinateurs', 'Tech', 'Smartphones'].includes(product.category) || product.category.toLowerCase().includes('tech');
 
-    const productReviews = reviews.filter(r => r.productId === product.id);
+    const productReviews = reviews.filter(r => r.productId?.toString() === product.id?.toString());
     const averageRating = productReviews.length > 0
         ? (productReviews.reduce((acc, curr) => acc + curr.rating, 0) / productReviews.length).toFixed(1)
         : null;
@@ -157,21 +190,38 @@ const ProductDetails = () => {
         order.items.some(item => item.id === product.id)
     );
 
-    const productImages = product.images || [product.image];
+    const productImages = currentGalleryImages.length > 0 ? currentGalleryImages : (product.images || [product.image]);
+
+    // Flash sale helpers
+    const flashSale = product.flashSale;
+    const isFlashActive = () => {
+        if (!flashSale || !flashSale.discount) return false;
+        const now = new Date();
+        if (flashSale.startDate && now < new Date(flashSale.startDate)) return false;
+        if (flashSale.endDate && now > new Date(flashSale.endDate)) return false;
+        return true;
+    };
+    const flashActive = isFlashActive();
+    const flashCountdown = useFlashCountdown(flashActive && flashSale?.endDate ? flashSale.endDate : null, t);
+
+    // Effective price: color variant price > base price, minus flash discount
+    const basePrice = activeColorVariant?.price ? Number(activeColorVariant.price) : Number(product.price);
+    const discountedPrice = flashActive ? Math.round(basePrice * (1 - flashSale.discount / 100)) : null;
+    const displayPrice = discountedPrice || basePrice;
 
 
     const validateSelection = () => {
         if (product.colors && product.colors.length > 0 && !selectedColor) {
-            setSelectionError('Veuillez sélectionner une couleur');
+            setSelectionError(`${t('common.error')}: ${t('product_details.color')}`);
             return false;
         }
         // Check if sizes exist, regardless of category
         if (product.availableSizes && product.availableSizes.length > 0 && !selectedSize) {
-            setSelectionError(`Veuillez sélectionner une ${isShoes ? 'pointure' : 'taille'}`);
+            setSelectionError(`${t('common.error')}: ${isShoes ? t('product_details.pointure') : t('product_details.size')}`);
             return false;
         }
         if (isTech && !selectedStorage) {
-            setSelectionError('Veuillez sélectionner une capacité de stockage');
+            setSelectionError(`${t('common.error')}: ${t('product_details.storage')}`);
             return false;
         }
         setSelectionError(null);
@@ -185,16 +235,23 @@ const ProductDetails = () => {
         if (product.availableSizes && product.availableSizes.length > 0) itemToAdd.selectedSize = selectedSize;
         if (isTech) itemToAdd.selectedStorage = selectedStorage;
 
-        addToCart(itemToAdd);
-        toast.success(`Ajouté au panier : ${product.name} ${selectedSize ? `(${selectedSize})` : ''}`, {
-            position: "bottom-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-        });
+        const added = addToCart(itemToAdd);
+        if (added === false) {
+            navigate('/login', {
+                state: {
+                    from: `/product/${product.id}`,
+                    message: `🛒 ${t('cart.login_to_checkout')}`
+                }
+            });
+            return;
+        }
+
+        // Show success toast
+        showToast(`${t('cart.added_to_cart')} : ${product.name} ${selectedSize ? `(${selectedSize})` : ''}`, 'success');
+
+        // Visual feedback on button
+        setIsAdded(true);
+        setTimeout(() => setIsAdded(false), 2000);
     };
 
     const handleBuyNow = () => {
@@ -204,7 +261,16 @@ const ProductDetails = () => {
         if (product.availableSizes && product.availableSizes.length > 0) itemToAdd.selectedSize = selectedSize;
         if (isTech) itemToAdd.selectedStorage = selectedStorage;
 
-        addToCart(itemToAdd);
+        const added = addToCart(itemToAdd);
+        if (added === false) {
+            navigate('/login', {
+                state: {
+                    from: `/product/${product.id}`,
+                    message: `🛒 ${t('cart.login_to_checkout')}`
+                }
+            });
+            return;
+        }
         navigate('/checkout');
     };
 
@@ -217,7 +283,7 @@ const ProductDetails = () => {
             rating: userRating,
             comment: userComment,
             images: reviewImages,
-            date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+            date: new Date().toLocaleDateString(language === 'AR' ? 'ar-EG' : language === 'EN' ? 'en-US' : 'fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
         };
         addReview(newReview);
         setUserComment('');
@@ -248,7 +314,7 @@ const ProductDetails = () => {
                         style={{ color: colors.textSecondary, cursor: 'pointer', transition: 'all 0.2s' }}
                     >
                         <i className="bi bi-house-door" style={{ fontSize: '1rem' }}></i>
-                        <span>Accueil</span>
+                        <span>{t('nav.home')}</span>
                     </div>
 
                     <i className="bi bi-chevron-right" style={{ color: colors.border, fontSize: '0.7rem' }}></i>
@@ -258,7 +324,7 @@ const ProductDetails = () => {
                         className="cursor-pointer hover-opacity"
                         style={{ color: colors.textSecondary, cursor: 'pointer', transition: 'all 0.2s' }}
                     >
-                        Boutique
+                        {t('nav.shop')}
                     </div>
 
                     <i className="bi bi-chevron-right" style={{ color: colors.border, fontSize: '0.7rem' }}></i>
@@ -268,11 +334,11 @@ const ProductDetails = () => {
                     </div>
                 </div>
 
-                <Row className="g-0 justify-content-center">
+                <Row className="g-0 g-lg-0 justify-content-center product-details-row">
                     {/* --- IMAGE GALLERY (Floating Card) --- */}
-                    <Col lg={showReviews ? 4 : 5}>
-                        <div className="gallery-float-card bg-white p-2 shadow-sm border-0 d-flex flex-column mb-4" style={{ borderRadius: '16px 0 0 16px', height: '620px' }}>
-                            <div className="position-relative overflow-hidden mb-2" style={{ flex: '1 1 auto', maxHeight: '520px', borderRadius: '12px', backgroundColor: '#fcfcfc' }}>
+                    <Col xs={12} lg={showReviews ? 4 : 5}>
+                        <div className="gallery-float-card bg-white p-2 shadow-sm border-0 d-flex flex-column mb-3 mb-lg-4" style={{ borderRadius: '16px', borderBottomLeftRadius: '16px', borderBottomRightRadius: '16px' }}>
+                            <div className="position-relative overflow-hidden mb-2 product-gallery-img" style={{ borderRadius: '12px', backgroundColor: '#fcfcfc' }}>
                                 <img
                                     src={selectedImage}
                                     alt={product.name}
@@ -283,7 +349,14 @@ const ProductDetails = () => {
                                 {/* Float heart button */}
                                 <Button
                                     variant="white"
-                                    onClick={() => toggleFavorite(product.id)}
+                                    onClick={() => {
+                                        const nowFav = !isFavorite(product.id);
+                                        toggleFavorite(product.id);
+                                        showToast(
+                                            nowFav ? t('favorites_page.added_msg', 'Ajouté aux favoris ❤️') : t('favorites_page.removed_msg', 'Retiré des favoris'),
+                                            nowFav ? 'success' : 'info'
+                                        );
+                                    }}
                                     className="position-absolute top-0 end-0 m-4 rounded-circle border-0 shadow-sm d-flex align-items-center justify-content-center"
                                     style={{ width: '48px', height: '48px', backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', zIndex: 10 }}
                                 >
@@ -350,19 +423,18 @@ const ProductDetails = () => {
                     </Col>
 
                     {/* --- INFO COLUMN --- */}
-                    <Col lg={showReviews ? 4 : 5}>
-                        {/* Static Container forming the middle or right part of the card */}
+                    <Col xs={12} lg={showReviews ? 4 : 5}>
+                        {/* Info panel — auto height on mobile, fixed on desktop */}
                         <div
-                            className="bg-white shadow-sm border-0 position-relative"
+                            className="bg-white shadow-sm border-0 position-relative product-info-panel"
                             style={{
-                                height: '620px',
-                                borderRadius: showReviews ? '0' : '0 16px 16px 0',
+                                borderRadius: '16px',
                                 overflow: 'hidden',
-                                borderLeft: '1px solid rgba(0,0,0,0.05)'
+                                borderLeft: 'none'
                             }}
                         >
                             {/* Scrollable Content Area */}
-                            <div className="h-100 w-100 p-3 p-md-4 custom-scroll position-relative" style={{ overflowY: 'auto' }}>
+                            <div className="w-100 p-3 p-md-4 position-relative">
                                 <div className="vstack gap-2">
                                     {/* Rating in top-right corner */}
                                     <div
@@ -383,53 +455,97 @@ const ProductDetails = () => {
                                     </div>
 
                                     {/* Category & Rating Mini Row */}
-                                    <h4 className="fw-bold mb-1 pe-5" style={{ color: colors.textMain, letterSpacing: '-0.3px', fontFamily: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', fontSize: '1.35rem' }}>{product.name}</h4>
-                                    <div className="mb-3" style={{ color: colors.textSecondary, lineHeight: '1.5', fontSize: '0.85rem', fontFamily: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>{product.description}</div>
-                                    <div className="price-tag mb-1">
-                                        <span className="fw-bold" style={{ color: colors.primary, fontSize: '1.5rem', fontFamily: '"Segoe UI", Roboto, sans-serif', letterSpacing: '-0.3px' }}>{product.price.toLocaleString()} FCFA</span>
+                                    <h4 className="fw-bold mb-1 pe-5" style={{ color: colors.textMain, letterSpacing: '-0.3px', fontFamily: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif', fontSize: '1.35rem' }}>
+                                        <TranslatedText>{product.name}</TranslatedText>
+                                    </h4>
+                                    <div className="mb-3" style={{ color: colors.textSecondary, lineHeight: '1.5', fontSize: '0.85rem', fontFamily: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
+                                        <TranslatedText>{product.description}</TranslatedText>
+                                    </div>
+                                    {/* Flash Sale Banner */}
+                                    {flashActive && (
+                                        <div
+                                            className="d-flex align-items-center gap-2 rounded-3 px-3 py-2 mb-2"
+                                            style={{ background: 'linear-gradient(135deg,#ff4757,#ff6b81)', color: '#fff' }}
+                                        >
+                                            <i className="bi bi-lightning-fill" style={{ fontSize: '1.1rem' }}></i>
+                                            <div className="flex-grow-1">
+                                                <div className="fw-bold" style={{ fontSize: '0.9rem' }}>{t('product_details.flash_sale')} -{flashSale.discount}%</div>
+                                                {flashSale.endDate && flashCountdown && flashCountdown !== t('product_details.terminated') && (
+                                                    <div style={{ fontSize: '0.75rem', opacity: 0.9 }}>{t('product_details.expires_in')} : <strong>{flashCountdown}</strong></div>
+                                                )}
+                                            </div>
+                                            <Badge bg="light" className="text-danger fw-bold px-2">
+                                                -{flashSale.discount}%
+                                            </Badge>
+                                        </div>
+                                    )}
+
+                                    <div className="price-tag mb-1 d-flex align-items-baseline gap-2">
+                                        {flashActive && (
+                                            <span className="text-muted text-decoration-line-through" style={{ fontSize: '1rem' }}>{basePrice.toLocaleString()} FCFA</span>
+                                        )}
+                                        <span className="fw-bold" style={{ color: flashActive ? '#ff4757' : colors.primary, fontSize: '1.5rem', fontFamily: '"Segoe UI", Roboto, sans-serif', letterSpacing: '-0.3px' }}>{displayPrice.toLocaleString()} FCFA</span>
                                     </div>
 
 
                                     {/* Variant Selection: Colors (Rectangular Thumbnails) */}
                                     {product.colors && product.colors.length > 0 && (
                                         <div className="mb-2">
-                                            <div className="d-flex align-items-center mb-2">
-                                                <span className="fw-bold text-dark me-2" style={{ fontSize: '0.85rem', fontFamily: '"Segoe UI", Roboto, sans-serif' }}>Couleur:</span>
-                                                <span className="text-muted" style={{ fontSize: '0.85rem', fontFamily: '"Segoe UI", Roboto, sans-serif' }}>{selectedColor || 'Non sélectionnée'}</span>
+                                            <div className="d-flex align-items-center gap-2 mb-2">
+                                                <span className="fw-bold text-dark" style={{ fontSize: '0.85rem' }}>{t('product_details.color')}:</span>
+                                                <span className="text-muted" style={{ fontSize: '0.85rem' }}><TranslatedText>{selectedColor || t('product_details.not_selected')}</TranslatedText></span>
+                                                {activeColorVariant?.price && (
+                                                    <Badge bg="success" className="ms-1">{Number(activeColorVariant.price).toLocaleString()} FCFA</Badge>
+                                                )}
                                             </div>
                                             <div className="d-flex flex-wrap gap-2">
-                                                {product.colors.map((color, idx) => (
-                                                    <div
-                                                        key={idx}
-                                                        onClick={() => {
-                                                            setSelectedColor(color.name);
-                                                            if (color.image) setSelectedImage(color.image);
-                                                        }}
-                                                        className="position-relative overflow-hidden transition-all"
-                                                        style={{
-                                                            cursor: 'pointer',
-                                                            width: '56px',
-                                                            height: '66px',
-                                                            borderRadius: '8px',
-                                                            border: selectedColor === color.name ? `2px solid ${colors.primary}` : '1px solid #f0f0f0',
-                                                            padding: '2px',
-                                                            backgroundColor: '#fff',
-                                                            boxShadow: selectedColor === color.name ? '0 2px 8px rgba(255, 96, 0, 0.15)' : 'none'
-                                                        }}
-                                                        title={color.name}
-                                                    >
+                                                {product.colors.map((color, idx) => {
+                                                    // Use first image of the color's images array as thumbnail
+                                                    const thumbImg = color.images && color.images.length > 0 ? color.images[0] : null;
+                                                    return (
                                                         <div
-                                                            className="w-100 h-100 rounded-2"
-                                                            style={{
-                                                                backgroundColor: color.code,
-                                                                backgroundImage: color.image ? `url(${color.image})` : 'none',
-                                                                backgroundSize: 'cover',
-                                                                backgroundPosition: 'center',
-                                                                opacity: selectedColor === color.name ? 1 : 0.8
+                                                            key={idx}
+                                                            onClick={() => {
+                                                                setSelectedColor(color.name);
+                                                                setActiveColorVariant(color);
+                                                                setSelectionError(null);
+                                                                // Switch gallery to this color's images
+                                                                if (color.images && color.images.length > 0) {
+                                                                    setCurrentGalleryImages(color.images);
+                                                                    setSelectedImage(color.images[0]);
+                                                                } else {
+                                                                    // Fall back to main product images
+                                                                    const mainImgs = product.images && product.images.length > 0 ? product.images : [product.image].filter(Boolean);
+                                                                    setCurrentGalleryImages(mainImgs);
+                                                                    setSelectedImage(mainImgs[0] || '');
+                                                                }
                                                             }}
-                                                        />
-                                                    </div>
-                                                ))}
+                                                            className="position-relative overflow-hidden transition-all"
+                                                            style={{
+                                                                cursor: 'pointer',
+                                                                width: '56px',
+                                                                height: '66px',
+                                                                borderRadius: '8px',
+                                                                border: selectedColor === color.name ? `2px solid ${colors.primary}` : '1px solid #f0f0f0',
+                                                                padding: '2px',
+                                                                backgroundColor: '#fff',
+                                                                boxShadow: selectedColor === color.name ? '0 2px 8px rgba(255, 96, 0, 0.15)' : 'none'
+                                                            }}
+                                                            title={`${color.name}${color.price ? ' - ' + Number(color.price).toLocaleString() + ' FCFA' : ''}`}
+                                                        >
+                                                            <div
+                                                                className="w-100 h-100 rounded-2"
+                                                                style={{
+                                                                    backgroundColor: color.hex || color.code || '#eee',
+                                                                    backgroundImage: thumbImg ? `url(${thumbImg})` : 'none',
+                                                                    backgroundSize: 'cover',
+                                                                    backgroundPosition: 'center',
+                                                                    opacity: selectedColor === color.name ? 1 : 0.8
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     )}
@@ -438,8 +554,8 @@ const ProductDetails = () => {
                                     {product.availableSizes && product.availableSizes.length > 0 && (
                                         <div className="mb-2">
                                             <div className="d-flex align-items-center mb-2">
-                                                <span className="fw-bold text-dark me-2" style={{ fontSize: '0.85rem', fontFamily: '"Segoe UI", Roboto, sans-serif' }}>{isShoes ? 'Pointure' : 'Taille'}:</span>
-                                                <span className="text-muted" style={{ fontSize: '0.85rem', fontFamily: '"Segoe UI", Roboto, sans-serif' }}>{selectedSize || 'Non sélectionnée'}</span>
+                                                <span className="fw-bold text-dark me-2" style={{ fontSize: '0.85rem', fontFamily: '"Segoe UI", Roboto, sans-serif' }}>{isShoes ? t('product_details.pointure') : t('product_details.size')}:</span>
+                                                <span className="text-muted" style={{ fontSize: '0.85rem', fontFamily: '"Segoe UI", Roboto, sans-serif' }}>{selectedSize || t('product_details.not_selected')}</span>
                                             </div>
                                             <div className="d-flex flex-wrap gap-2">
                                                 {product.availableSizes.map((size) => (
@@ -474,8 +590,8 @@ const ProductDetails = () => {
                                     {(product.storageOptions || (isTech && (storageOptions && storageOptions.length > 0))) && (
                                         <div className="mb-2">
                                             <div className="d-flex align-items-center mb-2">
-                                                <span className="fw-bold text-dark me-2" style={{ fontSize: '0.85rem', fontFamily: '"Segoe UI", Roboto, sans-serif' }}>Stockage:</span>
-                                                <span className="text-muted" style={{ fontSize: '0.85rem', fontFamily: '"Segoe UI", Roboto, sans-serif' }}>{selectedStorage || 'Non sélectionné'}</span>
+                                                <span className="fw-bold text-dark me-2" style={{ fontSize: '0.85rem', fontFamily: '"Segoe UI", Roboto, sans-serif' }}>{t('product_details.storage')}:</span>
+                                                <span className="text-muted" style={{ fontSize: '0.85rem', fontFamily: '"Segoe UI", Roboto, sans-serif' }}>{selectedStorage || t('product_details.not_selected_m')}</span>
                                             </div>
                                             <div className="d-flex flex-wrap gap-2">
                                                 {(product.storageOptions || storageOptions).map((storage) => (
@@ -510,7 +626,7 @@ const ProductDetails = () => {
                                     {isClothing && (
                                         <div className="d-flex align-items-center gap-2 mb-4 text-muted small">
                                             <i className="bi bi-hanger"></i>
-                                            <span>La plupart des utilisateurs recommandent de prendre votre taille habituelle.</span>
+                                            <span>{t('product_details.recommend_size')}</span>
                                         </div>
                                     )}
 
@@ -536,18 +652,27 @@ const ProductDetails = () => {
                                             }}
                                             onClick={handleBuyNow}
                                         >
-                                            Acheter maintenant
+                                            {t('product_details.buy_now')}
                                         </Button>
                                         <Button
                                             className="flex-grow-1 py-3 fw-bold text-white border-0"
                                             style={{
                                                 borderRadius: '8px',
-                                                backgroundColor: colors.primary,
-                                                fontSize: '1rem'
+                                                backgroundColor: isAdded ? '#28a745' : colors.primary,
+                                                fontSize: '1rem',
+                                                transition: 'all 0.3s ease'
                                             }}
                                             onClick={handleAddToCart}
+                                            disabled={isAdded}
                                         >
-                                            Ajouter au panier
+                                            {isAdded ? (
+                                                <>
+                                                    <i className="bi bi-check2-circle me-2"></i>
+                                                    {t('product_details.added')}
+                                                </>
+                                            ) : (
+                                                t('product_details.add_to_cart')
+                                            )}
                                         </Button>
 
                                     </div>
@@ -560,7 +685,7 @@ const ProductDetails = () => {
                                             </div>
                                             <div>
                                                 <div className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>
-                                                    Livraison estimée : <span className="text-success">{deliveryDate}</span>
+                                                    {t('product_details.delivery_estimated')} : <span className="text-success">{deliveryDate}</span>
                                                 </div>
                                                 <div className="text-muted small">
                                                     {selectedCountry === "Tchad" && selectedCity === "N'Djaména" ? 'Livraison Express disponible' : 'Livraison Standard'}
@@ -575,10 +700,10 @@ const ProductDetails = () => {
                                         >
                                             <i className="bi bi-geo-alt-fill fs-5 text-danger"></i>
                                             <div className="flex-grow-1">
-                                                <div className="fw-bold text-dark" style={{ fontSize: '0.85rem' }}>Livrer à : {selectedCountry}</div>
+                                                <div className="fw-bold text-dark" style={{ fontSize: '0.85rem' }}>{t('product_details.deliver_to')} : {selectedCountry}</div>
                                                 <div className="text-dark small fw-medium">{selectedCity} - {selectedDistrict}</div>
                                             </div>
-                                            <span className="fw-bold small cursor-pointer" style={{ color: colors.primary }}>Changer &gt;</span>
+                                            <span className="fw-bold small cursor-pointer" style={{ color: colors.primary }}>{t('product_details.change')} &gt;</span>
                                         </div>
                                     </div>
 
@@ -587,7 +712,7 @@ const ProductDetails = () => {
                                     <div className="mb-4">
                                         <h6 className="fw-bold mb-3 d-flex align-items-center gap-2" style={{ fontSize: '1rem', color: colors.textMain }}>
                                             <i className="bi bi-info-circle text-primary"></i>
-                                            Caractéristiques principales :
+                                            {t('product_details.main_features')} :
                                         </h6>
                                         <Row className="g-3">
                                             {(product.attributes && product.attributes.length > 0 ? product.attributes : [
@@ -610,8 +735,12 @@ const ProductDetails = () => {
                                                             fontFamily: "'Inter', sans-serif"
                                                         }}
                                                     >
-                                                        <div className="text-secondary mb-0" style={{ fontSize: '0.65rem', fontWeight: '500', opacity: 0.8, letterSpacing: '0.2px' }}>{attr.label}</div>
-                                                        <div className="fw-bold text-dark text-truncate" style={{ fontSize: '0.82rem', fontFamily: "'Manrope', sans-serif", fontWeight: '700' }}>{attr.value}</div>
+                                                        <div className="text-secondary mb-0" style={{ fontSize: '0.65rem', fontWeight: '500', opacity: 0.8, letterSpacing: '0.2px' }}>
+                                                            <TranslatedText>{attr.label}</TranslatedText>
+                                                        </div>
+                                                        <div className="fw-bold text-dark text-truncate" style={{ fontSize: '0.82rem', fontFamily: "'Manrope', sans-serif", fontWeight: '700' }}>
+                                                            <TranslatedText>{attr.value}</TranslatedText>
+                                                        </div>
                                                     </div>
                                                 </Col>
                                             ))}
@@ -623,15 +752,15 @@ const ProductDetails = () => {
                                         <ul className="list-unstyled d-flex flex-column gap-2 mb-0">
                                             <li className="d-flex gap-2">
                                                 <span style={{ color: colors.primary }}>•</span>
-                                                Ce produit sera expédié par <strong>TRYMYDAY</strong>.
+                                                {t('product_details.shipping_by')} <strong>TRYMYDAY</strong>.
                                             </li>
                                             <li className="d-flex gap-2">
                                                 <span style={{ color: colors.primary }}>•</span>
-                                                Plus de 50 articles en stock au prix promotionnel.
+                                                {t('product_details.promo_stock')}
                                             </li>
                                             <li className="d-flex gap-2">
                                                 <span style={{ color: colors.primary }}>•</span>
-                                                Possibilité de commander jusqu'à 10 articles maximum par commande.
+                                                {t('product_details.max_order')}
                                             </li>
                                         </ul>
                                     </div>
@@ -640,7 +769,7 @@ const ProductDetails = () => {
                                         className="w-100 text-center text-muted small text-decoration-none mt-2 bg-light py-2 rounded-3 fw-bold"
                                         onClick={() => setShowFullDescription(!showFullDescription)}
                                     >
-                                        {showFullDescription ? 'MOINS de caractéristiques' : 'TOUTES les caractéristiques'}
+                                        {showFullDescription ? t('product_details.less_features') : t('product_details.more_features')}
                                         <i className={`bi bi-chevron-${showFullDescription ? 'up' : 'down'} ms-1`}></i>
                                     </Button>
                                 </div>
@@ -650,19 +779,20 @@ const ProductDetails = () => {
 
                     {/* --- REVIEWS SIDE COLUMN --- */}
                     {showReviews && (
-                        <Col lg={4} className="animate-fade-in">
+                        <Col xs={12} lg={4} className="animate-fade-in">
                             <div
                                 className="bg-white shadow-sm border-0 position-relative"
                                 style={{
-                                    height: '520px',
-                                    borderRadius: '0 16px 16px 0',
+                                    borderRadius: '16px',
                                     overflow: 'hidden',
-                                    borderLeft: '1px solid rgba(0,0,0,0.05)'
+                                    maxHeight: '600px',
+                                    display: 'flex',
+                                    flexDirection: 'column'
                                 }}
                             >
                                 <div className="h-100 w-100 p-4 custom-scroll" style={{ overflowY: 'auto' }}>
                                     <div className="d-flex align-items-center justify-content-between mb-4">
-                                        <h5 className="fw-bold mb-0">Avis clients</h5>
+                                        <h5 className="fw-bold mb-0">{t('product_details.reviews')}</h5>
                                         <div className="d-flex gap-2">
                                             {isVerifiedBuyer && (
                                                 <Button
@@ -671,7 +801,7 @@ const ProductDetails = () => {
                                                     style={{ color: colors.primary, fontSize: '0.85rem' }}
                                                     onClick={() => setShowReviewForm(!showReviewForm)}
                                                 >
-                                                    {showReviewForm ? 'Annuler' : 'Noter'}
+                                                    {showReviewForm ? t('product_details.cancel') : t('product_details.rate')}
                                                 </Button>
                                             )}
                                             <Button
@@ -700,7 +830,7 @@ const ProductDetails = () => {
                                                 <Form.Control
                                                     as="textarea"
                                                     rows={2}
-                                                    placeholder="Votre avis..."
+                                                    placeholder={t('product_details.your_comment')}
                                                     value={userComment}
                                                     onChange={(e) => setUserComment(e.target.value)}
                                                     className="border-0 bg-white mb-2 shadow-none small"
@@ -717,7 +847,7 @@ const ProductDetails = () => {
                                                         style={{ borderRadius: '8px' }}
                                                     />
                                                 </div>
-                                                <Button size="sm" type="submit" className="border-0 rounded-pill px-3 py-1 text-white" style={{ backgroundColor: colors.primary }}>Publier</Button>
+                                                <Button size="sm" type="submit" className="border-0 rounded-pill px-3 py-1 text-white" style={{ backgroundColor: colors.primary }}>{t('product_details.submit_review')}</Button>
                                             </Form>
                                         </div>
                                     )}
@@ -734,7 +864,9 @@ const ProductDetails = () => {
                                                             ))}
                                                         </div>
                                                     </div>
-                                                    <p className="mb-2 text-muted" style={{ fontSize: '0.8rem', lineHeight: '1.4' }}>{review.comment}</p>
+                                                    <p className="mb-2 text-muted" style={{ fontSize: '0.8rem', lineHeight: '1.4' }}>
+                                                        <TranslatedText>{review.comment}</TranslatedText>
+                                                    </p>
                                                     {review.images && review.images.length > 0 && (
                                                         <div className="d-flex flex-wrap gap-2 mt-2">
                                                             {review.images.map((img, imgIndex) => (
@@ -751,7 +883,7 @@ const ProductDetails = () => {
                                                 </div>
                                             ))
                                         ) : (
-                                            <div className="text-center py-4 text-muted small">Aucun avis pour l'instant.</div>
+                                            <div className="text-center py-4 text-muted small">{t('product_details.no_reviews')}</div>
                                         )}
                                     </div>
                                 </div>
@@ -765,14 +897,14 @@ const ProductDetails = () => {
                     similarProducts.length > 0 && (
                         <div className="mt-5 pt-4 border-top">
                             <div className="d-flex align-items-center justify-content-between mb-4">
-                                <h4 className="fw-bold mb-0" style={{ letterSpacing: '-0.5px', fontFamily: '"Segoe UI", Roboto, sans-serif' }}>Produits Similaires</h4>
+                                <h4 className="fw-bold mb-0" style={{ letterSpacing: '-0.5px', fontFamily: '"Segoe UI", Roboto, sans-serif' }}>{t('product_details.similar_products')}</h4>
                                 <Button
                                     variant="link"
                                     className="text-decoration-none fw-bold"
                                     style={{ color: colors.primary, fontSize: '0.9rem' }}
                                     onClick={() => navigate('/shop')}
                                 >
-                                    Tout voir
+                                    {t('common.view_all')}
                                 </Button>
                             </div>
                             <Row xs={2} sm={3} md={4} lg={6} className="g-3">
@@ -790,7 +922,7 @@ const ProductDetails = () => {
             {/* Location Selection Modal */}
             < Modal show={showLocationModal} onHide={() => setShowLocationModal(false)} centered >
                 <Modal.Header closeButton className="border-0 pb-0">
-                    <Modal.Title className="fw-bold fs-5">Choisir votre localisation</Modal.Title>
+                    <Modal.Title className="fw-bold fs-5">{t('product_details.change')} - {t('product_details.deliver_to')}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="pt-2">
                     <p className="text-muted small mb-4">Sélectionnez votre pays, ville et quartier pour voir la date de livraison.</p>
@@ -908,13 +1040,72 @@ const ProductDetails = () => {
                     transform: translateY(-5px);
                     box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
                 }
-                @media (max-width: 768px) {
+                /* Gallery image proportions */
+                .product-gallery-img {
+                    height: 500px;
+                }
+
+                /* Desktop: side-by-side, fixed height info panel */
+                @media (min-width: 992px) {
                     .gallery-float-card {
-                        border-radius: 20px !important;
+                        border-radius: 16px 0 0 16px !important;
+                        height: 620px;
                     }
-                    .info-card-tech, .reviews-card-tech {
-                        border-radius: 20px !important;
-                        padding: 24px !important;
+                    .product-gallery-img {
+                        flex: 1 1 auto;
+                        max-height: 520px;
+                    }
+                    .product-info-panel {
+                        height: 620px;
+                        border-radius: 0 16px 16px 0 !important;
+                        border-left: 1px solid rgba(0,0,0,0.05) !important;
+                        overflow-y: auto;
+                    }
+                    .product-info-panel > div {
+                        height: 100%;
+                        overflow-y: auto;
+                    }
+                }
+
+                /* Mobile: stacked, auto height */
+                @media (max-width: 991.98px) {
+                    .product-details-row {
+                        gap: 0.75rem !important;
+                    }
+                    .gallery-float-card {
+                        border-radius: 16px !important;
+                        height: auto !important;
+                        min-height: unset;
+                    }
+                    .product-gallery-img {
+                        height: 280px !important;
+                        flex: none !important;
+                        max-height: 280px !important;
+                    }
+                    .product-info-panel {
+                        height: auto !important;
+                        border-radius: 16px !important;
+                        border-left: none !important;
+                        overflow: visible !important;
+                    }
+                    .product-info-panel > div {
+                        overflow: visible !important;
+                        height: auto !important;
+                    }
+                    /* Sticky rating badge top-right */
+                    .product-info-panel .position-absolute[style*="top: 20px"] {
+                        position: relative !important;
+                        top: auto !important;
+                        right: auto !important;
+                        display: inline-flex !important;
+                        margin-bottom: 0.5rem;
+                    }
+                    /* Action buttons full width on mobile */
+                    .product-info-panel .d-flex.gap-3 {
+                        flex-direction: column !important;
+                    }
+                    .product-info-panel .d-flex.gap-3 button {
+                        width: 100% !important;
                     }
                 }
             `}</style>

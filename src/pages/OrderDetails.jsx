@@ -1,25 +1,85 @@
-import { Container, Row, Col, Card, Badge, Button, ListGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Badge, Button, ListGroup, Modal, Form } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import ProfileLayout from '../components/ProfileLayout';
 
 const OrderDetails = () => {
     const { orderId } = useParams();
     const { orders, updateOrder } = useData();
     const { user } = useAuth();
+    const { showToast, confirm } = useToast();
+    const { t } = useLanguage();
     const navigate = useNavigate();
 
     // Find the order
     const order = orders.find(o => o.id === orderId);
 
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [selectedItems, setSelectedItems] = useState({}); // { index: true/false }
+
+    const handleCancelRequest = async (isFullOrder = false) => {
+        let indicesToCancel = [];
+        if (isFullOrder) {
+            indicesToCancel = order.items.map((_, i) => i).filter(i => !order.items[i].cancelled && !order.items[i].cancelRequested);
+        } else {
+            indicesToCancel = Object.keys(selectedItems).filter(idx => selectedItems[idx]).map(Number);
+        }
+
+        if (indicesToCancel.length === 0) {
+            showToast('Veuillez sélectionner au moins un article', 'warning');
+            return;
+        }
+
+        const msg = isFullOrder ? "ANNULER TOUTE la commande ?" : `Annuler les ${indicesToCancel.length} article(s) sélectionné(s) ?`;
+        const ok = await confirm({
+            title: isFullOrder ? 'Annuler toute la commande' : 'Annuler la sélection',
+            message: msg + " Un administrateur devra valider votre demande.",
+            variant: 'danger',
+            confirmText: 'Confirmer la demande'
+        });
+
+        if (ok) {
+            const updatedItems = [...order.items];
+            indicesToCancel.forEach(idx => {
+                updatedItems[idx] = { ...updatedItems[idx], cancelRequested: true };
+            });
+
+            const allNowCancelled = updatedItems.every(i => i.cancelRequested || i.cancelled);
+            const newStatus = allNowCancelled ? "Demande d'annulation" : order.status;
+
+            const note = isFullOrder ? "L'utilisateur a demandé l'annulation totale." : `L'utilisateur a demandé l'annulation de ${indicesToCancel.length} article(s).`;
+
+            const timelineEntry = {
+                date: new Date().toLocaleString('fr-FR'),
+                oldStatus: order.status,
+                newStatus: newStatus,
+                note: note,
+                admin: "Client"
+            };
+
+            await updateOrder(order.id, {
+                items: updatedItems,
+                status: newStatus,
+                timeline: [...(order.timeline || []), timelineEntry]
+            });
+
+            setShowCancelModal(false);
+            setSelectedItems({});
+            showToast('Demande envoyée avec succès', 'success');
+        }
+    };
+
     // Check if order exists and belongs to user
     if (!order) {
         return (
             <Container className="py-5 text-center">
-                <h3>❌ Commande introuvable</h3>
+                <h3>❌ {t('order_details.not_found')}</h3>
                 <Button variant="warning" className="mt-3 text-white" onClick={() => navigate('/profile/orders')}>
-                    ⬅️ Retour aux commandes
+                    ⬅️ {t('order_details.back')}
                 </Button>
             </Container>
         );
@@ -28,9 +88,9 @@ const OrderDetails = () => {
     if (order.email !== user?.email && user?.role !== 'admin') {
         return (
             <Container className="py-5 text-center">
-                <h3>🔒 Accès non autorisé</h3>
+                <h3>🔒 {t('order_details.unauthorized')}</h3>
                 <Button variant="warning" className="mt-3 text-white" onClick={() => navigate('/profile/orders')}>
-                    ⬅️ Retour aux commandes
+                    ⬅️ {t('order_details.back')}
                 </Button>
             </Container>
         );
@@ -49,11 +109,11 @@ const OrderDetails = () => {
             {/* Header */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h3 className="fw-bold mb-1">Détails de la commande</h3>
-                    <p className="text-muted mb-0">Commande #{order.id}</p>
+                    <h3 className="fw-bold mb-1">{t('order_details.title')}</h3>
+                    <p className="text-muted mb-0">{t('order_details.order_number')} #{order.id}</p>
                 </div>
                 <Button variant="outline-secondary" onClick={() => navigate('/profile/orders')}>
-                    ⬅️ Retour
+                    ⬅️ {t('order_details.back')}
                 </Button>
             </div>
 
@@ -63,13 +123,13 @@ const OrderDetails = () => {
                     {/* Order Status */}
                     <Card className="border-0 shadow-sm mb-4">
                         <Card.Body className="p-4">
-                            <h5 className="fw-bold mb-3">Statut de la commande</h5>
+                            <h5 className="fw-bold mb-3">{t('order_details.status')}</h5>
                             {order.status === "Demande d'annulation" && (
                                 <div className="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4">
                                     <i className="bi bi-hourglass-split me-3 fs-4"></i>
                                     <div>
-                                        <div className="fw-bold">Annulation en cours</div>
-                                        <small>Votre demande d'annulation a été enregistrée. Elle attend la confirmation d'un administrateur pour que votre remboursement soit effectué.</small>
+                                        <div className="fw-bold">{t('order_details.cancellation_progress')}</div>
+                                        <small>{t('order_details.cancellation_notice')}</small>
                                     </div>
                                 </div>
                             )}
@@ -78,7 +138,7 @@ const OrderDetails = () => {
                                     {order.status}
                                 </Badge>
                                 <div>
-                                    <small className="text-muted d-block">Date de commande</small>
+                                    <small className="text-muted d-block">{t('order_details.order_date')}</small>
                                     <strong>{order.date}</strong>
                                 </div>
                             </div>
@@ -91,13 +151,13 @@ const OrderDetails = () => {
                             <Card.Body className="p-4">
                                 <h5 className="fw-bold mb-3">
                                     <i className="bi bi-clock-history me-2"></i>
-                                    Suivi de commande
+                                    {t('order_details.tracking')}
                                 </h5>
 
                                 {order.trackingNumber && (
                                     <div className="alert alert-info mb-3">
                                         <i className="bi bi-truck me-2"></i>
-                                        <strong>Numéro de suivi :</strong> {order.trackingNumber}
+                                        <strong>{t('order_details.tracking_number')}</strong> {order.trackingNumber}
                                     </div>
                                 )}
 
@@ -175,7 +235,7 @@ const OrderDetails = () => {
                     {/* Order Items */}
                     <Card className="border-0 shadow-sm mb-4">
                         <Card.Body className="p-4">
-                            <h5 className="fw-bold mb-3">Articles commandés ({order.items?.length || 0})</h5>
+                            <h5 className="fw-bold mb-3">{t('order_details.items_ordered')} ({order.items?.length || 0})</h5>
                             <ListGroup variant="flush">
                                 {order.items?.map((item, index) => (
                                     <ListGroup.Item key={index} className="px-0 py-3">
@@ -194,12 +254,20 @@ const OrderDetails = () => {
                                             </Col>
                                             <Col>
                                                 <h6 className="mb-1">{item.name}</h6>
-                                                <small className="text-muted">Quantité: {item.quantity}</small>
+                                                <small className="text-muted">{t('order_details.qty')} {item.quantity}</small>
                                             </Col>
                                             <Col xs="auto">
-                                                <strong className="text-warning">{item.price.toLocaleString()} FCFA</strong>
-                                                <div className="small text-muted">
-                                                    Total: {(item.price * item.quantity).toLocaleString()} FCFA
+                                                <div className="text-end">
+                                                    <strong className="text-warning d-block">{item.price.toLocaleString()} FCFA</strong>
+                                                    <div className="small text-muted mb-2">
+                                                        {t('order_details.total')} {(item.price * item.quantity).toLocaleString()} FCFA
+                                                    </div>
+
+                                                    {item.cancelRequested ? (
+                                                        <Badge bg="warning" text="dark" className="d-block small">{t('order_details.cancel_requested')}</Badge>
+                                                    ) : item.cancelled ? (
+                                                        <Badge bg="danger" className="d-block small">{t('order_details.cancelled')}</Badge>
+                                                    ) : null}
                                                 </div>
                                             </Col>
                                         </Row>
@@ -212,14 +280,14 @@ const OrderDetails = () => {
                     {/* Shipping Address */}
                     <Card className="border-0 shadow-sm mb-4">
                         <Card.Body className="p-4">
-                            <h5 className="fw-bold mb-3">Adresse de livraison</h5>
+                            <h5 className="fw-bold mb-3">{t('order_details.shipping_address')}</h5>
                             <div className="bg-light p-3 rounded">
                                 <p className="mb-1"><strong>{order.customer}</strong></p>
                                 <p className="mb-1 small">{order.shippingAddress?.address}</p>
                                 <p className="mb-1 small">{order.shippingAddress?.city}, {order.shippingAddress?.postalCode}</p>
                                 <p className="mb-1 small">{order.shippingAddress?.country}</p>
-                                <p className="mb-1 small">Tél: {order.phone}</p>
-                                <p className="mb-0 small">Email: {order.email}</p>
+                                <p className="mb-1 small">{t('order_details.phone')} {order.phone}</p>
+                                <p className="mb-0 small">{t('order_details.email')} {order.email}</p>
                             </div>
                         </Card.Body>
                     </Card>
@@ -230,27 +298,27 @@ const OrderDetails = () => {
                     <div className="sticky-top" style={{ top: '100px', zIndex: 10, transition: 'all 0.3s ease' }}>
                         <Card className="border-0 shadow-sm mb-3">
                             <Card.Body className="p-4">
-                                <h5 className="fw-bold mb-4">Résumé de la commande</h5>
+                                <h5 className="fw-bold mb-4">{t('order_details.summary')}</h5>
 
                                 <div className="d-flex justify-content-between mb-2">
-                                    <span className="text-muted">Sous-total</span>
+                                    <span className="text-muted">{t('order_details.subtotal')}</span>
                                     <span>{(order.total - (order.shippingCost || 0)).toLocaleString()} FCFA</span>
                                 </div>
 
                                 <div className="d-flex justify-content-between mb-2">
-                                    <span className="text-muted">Livraison</span>
-                                    <span>{order.shippingCost ? `${order.shippingCost.toLocaleString()} FCFA` : 'Gratuite'}</span>
+                                    <span className="text-muted">{t('order_details.shipping')}</span>
+                                    <span>{order.shippingCost ? `${order.shippingCost.toLocaleString()} FCFA` : t('order_details.free')}</span>
                                 </div>
 
                                 <hr />
 
                                 <div className="d-flex justify-content-between mb-3">
-                                    <strong>Total</strong>
+                                    <strong>{t('order_details.total').replace(':', '')}</strong>
                                     <strong className="text-warning fs-5">{order.total.toLocaleString()} FCFA</strong>
                                 </div>
 
                                 <div className="bg-light p-3 rounded">
-                                    <small className="text-muted d-block mb-1">Numéro de commande</small>
+                                    <small className="text-muted d-block mb-1">{t('order_details.order_number')}</small>
                                     <strong className="small">{order.id}</strong>
                                 </div>
                             </Card.Body>
@@ -263,24 +331,10 @@ const OrderDetails = () => {
                                     <Button
                                         variant="danger"
                                         className="w-100 mb-2"
-                                        onClick={() => {
-                                            if (window.confirm('Êtes-vous sûr de vouloir annuler ? L\'administrateur devra accepter l\'annulation avant que votre argent ne soit retourné sur votre compte.')) {
-                                                const timelineEntry = {
-                                                    date: new Date().toLocaleString('fr-FR'),
-                                                    oldStatus: order.status,
-                                                    newStatus: "Demande d'annulation",
-                                                    note: "L'utilisateur a demandé l'annulation.",
-                                                    admin: "Client"
-                                                };
-                                                updateOrder(order.id, {
-                                                    status: "Demande d'annulation",
-                                                    timeline: [...(order.timeline || []), timelineEntry]
-                                                });
-                                            }
-                                        }}
+                                        onClick={() => setShowCancelModal(true)}
                                     >
                                         <i className="bi bi-x-circle me-2"></i>
-                                        Annuler la commande
+                                        {t('order_details.manage_cancel')}
                                     </Button>
                                 )}
                                 <Button
@@ -289,7 +343,7 @@ const OrderDetails = () => {
                                     onClick={() => window.print()}
                                 >
                                     <i className="bi bi-printer me-2"></i>
-                                    Imprimer
+                                    {t('order_details.print')}
                                 </Button>
                                 <Button
                                     variant="outline-secondary"
@@ -297,13 +351,80 @@ const OrderDetails = () => {
                                     onClick={() => navigate('/shop')}
                                 >
                                     <i className="bi bi-shop me-2"></i>
-                                    Continuer mes achats
+                                    {t('order_details.continue_shopping')}
                                 </Button>
                             </Card.Body>
                         </Card>
                     </div>
                 </Col>
             </Row>
+
+            {/* Cancellation Modal */}
+            <Modal show={showCancelModal} onHide={() => setShowCancelModal(false)} centered>
+                <Modal.Header closeButton className="border-0">
+                    <Modal.Title className="fw-bold">{t('order_details.manage_cancel')}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="pt-0">
+                    <p className="text-muted small mb-4">
+                        {t('order_details.cancel_notice')}
+                    </p>
+
+                    <Button
+                        variant="danger"
+                        className="w-100 mb-4 py-2 fw-bold"
+                        onClick={() => handleCancelRequest(true)}
+                    >
+                        <i className="bi bi-trash3 me-2"></i>
+                        {t('order_details.cancel_all')}
+                    </Button>
+
+                    <div className="separator mb-4 d-flex align-items-center">
+                        <hr className="flex-grow-1" />
+                        <span className="mx-3 text-muted small fw-bold">{t('order_details.or_partial')}</span>
+                        <hr className="flex-grow-1" />
+                    </div>
+
+                    <h6 className="fw-bold mb-3">{t('order_details.select_items')}</h6>
+                    <ListGroup className="border-0 mb-4">
+                        {order.items.map((item, idx) => {
+                            const isAvailable = !item.cancelled && !item.cancelRequested;
+                            return (
+                                <ListGroup.Item
+                                    key={idx}
+                                    className={`px-0 border-0 ${!isAvailable ? 'opacity-50' : ''}`}
+                                >
+                                    <Form.Check
+                                        type="checkbox"
+                                        id={`item-${idx}`}
+                                        disabled={!isAvailable}
+                                        checked={selectedItems[idx] || false}
+                                        onChange={(e) => setSelectedItems({ ...selectedItems, [idx]: e.target.checked })}
+                                        label={
+                                            <div className="ms-2">
+                                                <div className="fw-bold small">{item.name}</div>
+                                                <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                                    {item.price.toLocaleString()} FCFA
+                                                    {item.cancelRequested && <span className="ms-2 text-warning">({t('order_details.cancel_requested')})</span>}
+                                                    {item.cancelled && <span className="ms-2 text-danger">({t('order_details.cancelled')})</span>}
+                                                </div>
+                                            </div>
+                                        }
+                                    />
+                                </ListGroup.Item>
+                            );
+                        })}
+                    </ListGroup>
+
+                    <Button
+                        variant="outline-danger"
+                        className="w-100 py-2 fw-bold"
+                        disabled={!Object.values(selectedItems).some(val => val)}
+                        onClick={() => handleCancelRequest(false)}
+                    >
+                        {t('order_details.cancel_selected')}
+                    </Button>
+                </Modal.Body>
+            </Modal>
         </ProfileLayout>
     );
 };

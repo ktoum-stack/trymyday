@@ -20,50 +20,43 @@ export const AuthProvider = ({ children }) => {
     }, [user]);
 
     const login = async (email, password) => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
+        const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
 
-            if (response.ok) {
-                const userData = await response.json();
-                setUser(userData);
-                return true;
-            } else {
-                return false;
-            }
-        } catch (error) {
-            console.error("Login error:", error);
-            return false;
+        const data = await response.json();
+        if (response.ok) {
+            setUser(data.user);
+            localStorage.setItem('token', data.token); // Save JWT
+            return { success: true };
+        } else {
+            return { success: false, message: data.message };
         }
     };
 
     const logout = () => {
         setUser(null);
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
         window.location.href = '/';
     };
 
     const register = async (name, email, password) => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password })
-            });
+        const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password })
+        });
 
-            if (response.ok) {
-                const newUser = await response.json();
-                setUser(newUser);
-                return true;
-            } else {
-                return false;
-            }
-        } catch (error) {
-            console.error("Registration error:", error);
-            return false;
+        const data = await response.json();
+        if (response.ok) {
+            setUser(data.user);
+            localStorage.setItem('token', data.token); // Save JWT
+            return { success: true };
+        } else {
+            return { success: false, message: data.message };
         }
     };
 

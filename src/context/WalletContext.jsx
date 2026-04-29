@@ -24,8 +24,12 @@ export const WalletProvider = ({ children }) => {
 
         try {
             setLoading(true);
-
-            const response = await fetch(`${API_BASE_URL}/api/wallet/balance?email=${user.email}`);
+            const token = localStorage.getItem('token');
+            const response = await authFetch(`${API_BASE_URL}/api/wallet/balance`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             const data = await response.json();
 
             if (data.success) {
@@ -53,7 +57,7 @@ export const WalletProvider = ({ children }) => {
         if (!user) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/wallet/transactions?email=${user.email}`);
+            const response = await authFetch(`${API_BASE_URL}/api/wallet/transactions?email=${user.email}`);
             const data = await response.json();
 
             if (data.success) {
@@ -85,46 +89,34 @@ export const WalletProvider = ({ children }) => {
         }
 
         try {
-            const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
-            const userIndex = localUsers.findIndex(u => u.email === user.email);
+            setLoading(true);
+            const response = await authFetch(`${API_BASE_URL}/api/wallet/pay`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: user.email,
+                    amount: amount,
+                    orderId: orderId
+                }),
+            });
 
-            if (userIndex === -1) {
-                return { success: false, message: 'Utilisateur introuvable' };
+            const data = await response.json();
+
+            if (data.success) {
+                setBalance(data.newBalance);
+                updateUser({ ...user, balance: data.newBalance });
+                fetchTransactions();
+                return { success: true, newBalance: data.newBalance };
+            } else {
+                return { success: false, message: data.message || 'Erreur lors du paiement' };
             }
-
-            if (localUsers[userIndex].balance < amount) {
-                return { success: false, message: 'Solde insuffisant' };
-            }
-
-            // Deduct balance
-            const newBalance = localUsers[userIndex].balance - amount;
-            localUsers[userIndex].balance = newBalance;
-            localStorage.setItem('users', JSON.stringify(localUsers));
-
-            // Record transaction
-            const allTransactions = JSON.parse(localStorage.getItem('wallet_transactions') || '[]');
-            const newTransaction = {
-                id: Date.now(),
-                userId: user.id,
-                userEmail: user.email,
-                amount: amount,
-                type: 'debit',
-                description: `Paiement Commande #${orderId}`,
-                date: new Date().toISOString(),
-                balanceAfter: newBalance
-            };
-            allTransactions.push(newTransaction);
-            localStorage.setItem('wallet_transactions', JSON.stringify(allTransactions));
-
-            // Update local state
-            setBalance(newBalance);
-            updateUser({ ...user, balance: newBalance });
-            fetchTransactions();
-
-            return { success: true, newBalance };
         } catch (error) {
             console.error('Error paying with wallet:', error);
-            return { success: false, message: 'Erreur lors du paiement' };
+            return { success: false, message: 'Erreur de connexion au serveur' };
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -167,4 +159,17 @@ export const WalletProvider = ({ children }) => {
             {children}
         </WalletContext.Provider>
     );
+};
+
+
+// Auto-Injected fetch wrapper for JWT
+const authFetch = async (url, options = {}) => {
+    const token = localStorage.getItem('token');
+    if (token && url.includes('/api/')) {
+        options.headers = {
+            ...options.headers,
+            'Authorization': 'Bearer ' + token,
+        };
+    }
+    return fetch(url, options);
 };

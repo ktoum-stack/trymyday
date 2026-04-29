@@ -12,60 +12,12 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;800&display=swap"
     rel="stylesheet">
-  <script type="text/javascript">
-    function googleTranslateElementInit() {
-      new google.translate.TranslateElement({
-        pageLanguage: 'fr',
-        includedLanguages: 'fr,en,tr,ar',
-        layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-        autoDisplay: false
-      }, 'google_translate_element');
-    }
-  </script>
-  <script type="text/javascript"
-    src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
   <style>
-    /* Hide the Google Translate toolbar */
-    .goog-te-banner-frame,
-    iframe.goog-te-banner-frame,
-    .goog-te-gadget-icon,
-    #goog-gt-tt,
-    .goog-te-balloon-frame,
-    div#goog-gt- {
-      display: none !important;
-      visibility: hidden !important;
-      height: 0 !important;
-    }
-
     body {
       top: 0px !important;
       position: static !important;
     }
-
-    .goog-te-menu-value span:nth-child(5) {
-      display: none !important;
-    }
-
-    .goog-te-gadget-simple {
-      background-color: transparent !important;
-      border: none !important;
-      padding: 0 !important;
-    }
   </style>
-  <script type="text/javascript">
-    // Aggressive script to hide the Google Translate Top Bar
-    if (window.MutationObserver) {
-      const observer = new MutationObserver(function (mutations) {
-        const banner = document.querySelector('.goog-te-banner-frame');
-        if (banner) {
-          banner.style.display = 'none';
-        }
-        document.body.style.top = '0px';
-        document.body.style.position = 'static';
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
-  </script>
 </head>
 
 <body>

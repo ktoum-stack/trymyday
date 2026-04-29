@@ -1,0 +1,31 @@
+{
+  "notifications": [
+    {
+      "id": "notif_1",
+      "userId": "51442403",
+      "type": "order",
+      "title": "Commande Expédiée",
+      "message": "Votre commande #1234 est en route.",
+      "date": "2026-04-01T10:00:00Z",
+      "isRead": true
+    },
+    {
+      "id": "notif_2",
+      "userId": "51442403",
+      "type": "promo",
+      "title": "Offre Flash !",
+      "message": "Profitez de -20% sur la nouvelle collection.",
+      "date": "2026-04-01T11:00:00Z",
+      "isRead": true
+    },
+    {
+      "id": "notif_3",
+      "userId": "1",
+      "type": "system",
+      "title": "Bienvenue",
+      "message": "Bienvenue sur TRY MY DAY !",
+      "date": "2026-04-01T09:00:00Z",
+      "isRead": false
+    }
+  ]
+}

@@ -3,10 +3,14 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useWallet } from '../../context/WalletContext';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 import API_BASE_URL from '../../config';
 
 const AdminWalletManagement = () => {
+    const { t } = useLanguage();
     const { user: authUser } = useAuth();
+    const { showToast, confirm } = useToast();
     const navigate = useNavigate();
 
     if (authUser?.role === 'expediteur') {
@@ -27,31 +31,36 @@ const AdminWalletManagement = () => {
     const [selectedUser, setSelectedUser] = useState(null);
     const [virementAmount, setVirementAmount] = useState('');
     const [virementDescription, setVirementDescription] = useState('');
-    const [message, setMessage] = useState(null);
     const [isIdVirement, setIsIdVirement] = useState(false);
     const [directUserId, setDirectUserId] = useState('');
     const [foundUser, setFoundUser] = useState(null);
     const [selectedTransaction, setSelectedTransaction] = useState(null); // New state for details modal
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // Fetch data from localStorage
-    const fetchData = () => {
+    // Fetch data from backend
+    const fetchData = async () => {
         setLoading(true);
         try {
-            // Load users
-            const localUsers = JSON.parse(localStorage.getItem('users')) || [];
-            const safeUsers = Array.isArray(localUsers) ? localUsers.filter(u => u && typeof u === 'object') : [];
-            setUsers(safeUsers);
+            // Load users from backend
+            const userRes = await authFetch(`${API_BASE_URL}/api/admin/wallet/users`);
+            if (userRes.ok) {
+                const userData = await userRes.json();
+                if (userData.success) {
+                    setUsers(userData.users || []);
+                }
+            }
 
-            // Load transactions
-            const localTransactions = JSON.parse(localStorage.getItem('wallet_transactions')) || [];
-            const safeTransactions = Array.isArray(localTransactions) ? localTransactions.filter(t => t && typeof t === 'object') : [];
-            // Sort by date descending
-            const sortedTransactions = safeTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-            setTransactions(sortedTransactions);
+            // Load transactions from backend
+            const txRes = await authFetch(`${API_BASE_URL}/api/admin/wallet/history`);
+            if (txRes.ok) {
+                const txData = await txRes.json();
+                if (txData.success) {
+                    setTransactions(txData.transactions || []);
+                }
+            }
         } catch (error) {
-            console.error('Error fetching localStorage data:', error);
-            setMessage({ type: 'danger', text: 'Erreur lors du chargement des données locales' });
+            console.error('Error fetching data from API:', error);
+            showToast('Erreur lors du chargement des données de l\'API', 'danger');
         } finally {
             setLoading(false);
         }
@@ -61,13 +70,18 @@ const AdminWalletManagement = () => {
     const handleVirementWallet = async () => {
         const targetUser = isIdVirement ? foundUser : selectedUser;
         if (!targetUser || !virementAmount || parseFloat(virementAmount) <= 0) {
-            setMessage({ type: 'danger', text: 'Veuillez remplir tous les champs correctement' });
+            showToast('Veuillez remplir tous les champs correctement', 'warning');
             return;
         }
 
-        if (!window.confirm(`Êtes-vous sûr de vouloir effectuer un virement de ${parseFloat(virementAmount).toLocaleString()} FCFA à ${targetUser.name} (${targetUser.id}) ?`)) {
-            return;
-        }
+        const ok = await confirm({
+            title: 'Confirmer le virement',
+            message: `Êtes-vous sûr de vouloir effectuer un virement de ${parseFloat(virementAmount).toLocaleString()} FCFA à ${targetUser.name} (${targetUser.id}) ?`,
+            variant: 'warning',
+            confirmText: 'Confirmer le virement'
+        });
+
+        if (!ok) return;
 
         setIsProcessing(true);
         try {
@@ -75,7 +89,7 @@ const AdminWalletManagement = () => {
             const targetEmail = isIdVirement ? (foundUser?.email) : selectedUser?.email;
 
             if (isManager && targetEmail === authUser.email) {
-                setMessage({ type: 'danger', text: 'Vous ne pouvez pas vous envoyer des fonds à vous-même' });
+                showToast('Vous ne pouvez pas vous envoyer des fonds à vous-même', 'danger');
                 setIsProcessing(false);
                 return;
             }
@@ -83,7 +97,7 @@ const AdminWalletManagement = () => {
             // 1. Appel API Backend
             let response;
             if (isManager) {
-                response = await fetch(`${API_BASE_URL}/api/wallet/transfer`, {
+                response = await authFetch(`${API_BASE_URL}/api/wallet/transfer`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -94,7 +108,7 @@ const AdminWalletManagement = () => {
                     }),
                 });
             } else {
-                response = await fetch(`${API_BASE_URL}/api/admin/wallet/credit`, {
+                response = await authFetch(`${API_BASE_URL}/api/admin/wallet/credit`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -112,41 +126,13 @@ const AdminWalletManagement = () => {
                 throw new Error(result.message);
             }
 
-            // Sync with current data logic
-            const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
-            const userToCredit = isIdVirement ? foundUser : selectedUser;
-            const userIndex = localUsers.findIndex(u => u.id === userToCredit.id);
-
-            if (userIndex !== -1) {
-                const oldBalance = localUsers[userIndex].balance || 0;
-                localUsers[userIndex].balance = oldBalance + amount;
-                if (isManager) {
-                    const managerIdx = localUsers.findIndex(u => u.email === authUser.email);
-                    if (managerIdx !== -1) localUsers[managerIdx].balance -= amount;
-                }
-                localStorage.setItem('users', JSON.stringify(localUsers));
-
-                const localTransactions = JSON.parse(localStorage.getItem('wallet_transactions') || '[]');
-                localTransactions.push({
-                    id: Date.now(),
-                    userId: localUsers[userIndex].id,
-                    userEmail: localUsers[userIndex].email,
-                    amount: amount,
-                    type: 'credit',
-                    description: virementDescription || (isManager ? 'Virement Manager' : 'Virement TRYMYDAY'),
-                    date: new Date().toISOString(),
-                    balanceAfter: localUsers[userIndex].balance
-                });
-                localStorage.setItem('wallet_transactions', JSON.stringify(localTransactions));
-            }
-
             if (isManager) refreshManagerBalance();
 
-            setMessage({ type: 'success', text: `Virement de ${amount.toLocaleString()} FCFA effectué avec succès !` });
+            showToast(`Virement de ${amount.toLocaleString()} FCFA effectué avec succès !`, 'success');
             handleCloseModal();
             fetchData();
         } catch (error) {
-            setMessage({ type: 'danger', text: 'Erreur lors de la mise à jour du solde : ' + error.message });
+            showToast('Erreur lors de la mise à jour du solde : ' + error.message, 'danger');
             handleCloseModal();
             console.error(error);
         } finally {
@@ -155,44 +141,32 @@ const AdminWalletManagement = () => {
     };
 
     // Undo a transaction
-    const handleUndoTransaction = (transactionId) => {
-        if (!window.confirm("Êtes-vous sûr de vouloir annuler cette transaction ? Le montant sera déduit du solde de l'utilisateur.")) {
-            return;
-        }
+    const handleUndoTransaction = async (transactionId) => {
+        const ok = await confirm({
+            title: 'Annuler la transaction',
+            message: "Êtes-vous sûr de vouloir annuler cette transaction ? Le montant sera déduit du solde de l'utilisateur.",
+            variant: 'danger',
+            confirmText: 'Annuler la transaction'
+        });
+
+        if (!ok) return;
 
         try {
-            const localTransactions = JSON.parse(localStorage.getItem('wallet_transactions') || '[]');
-            const txIndex = localTransactions.findIndex(tx => tx.id === transactionId);
+            const response = await authFetch(`${API_BASE_URL}/api/admin/wallet/undo-transaction`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ transactionId }),
+            });
 
-            if (txIndex === -1) {
-                setMessage({ type: 'danger', text: 'Transaction introuvable' });
-                return;
+            const result = await response.json();
+            if (result.success) {
+                showToast('Transaction annulée avec succès', 'success');
+                fetchData();
+            } else {
+                showToast(`Erreur: ${result.message}`, 'danger');
             }
-
-            const tx = localTransactions[txIndex];
-
-            // Revert balance for the user
-            const localUsers = JSON.parse(localStorage.getItem('users') || '[]');
-            const userIndex = localUsers.findIndex(u => u.id === tx.userId);
-
-            if (userIndex !== -1) {
-                localUsers[userIndex].balance = (localUsers[userIndex].balance || 0) - tx.amount;
-                localStorage.setItem('users', JSON.stringify(localUsers));
-            }
-
-            // Mark as cancelled instead of deleting
-            localTransactions[txIndex] = {
-                ...tx,
-                status: 'cancelled',
-                description: tx.description + ' (Annulée par l\'admin)',
-                cancelledAt: new Date().toISOString()
-            };
-            localStorage.setItem('wallet_transactions', JSON.stringify(localTransactions));
-
-            setMessage({ type: 'success', text: 'Transaction marquée comme annulée' });
-            fetchData();
         } catch (error) {
-            setMessage({ type: 'danger', text: 'Erreur lors de l\'annulation' });
+            showToast('Erreur lors de l\'annulation', 'danger');
             console.error(error);
         }
     };
@@ -262,7 +236,7 @@ const AdminWalletManagement = () => {
     // Export transactions to CSV
     const exportTransactionsCSV = () => {
         if (transactions.length === 0) {
-            setMessage({ type: 'warning', text: 'Aucune transaction à exporter' });
+            showToast('Aucune transaction à exporter', 'warning');
             return;
         }
 
@@ -306,7 +280,7 @@ const AdminWalletManagement = () => {
                 <div>
                     <h3 className="fw-bold mb-0">
                         <i className="bi bi-wallet2 me-2 text-warning"></i>
-                        Gestion des Portefeuilles
+                        {t('admin_wallet_mgt.title', 'Gestion des Portefeuilles')}
                     </h3>
                     {isManager && (
                         <p className="text-muted small mb-0 mt-1 d-none d-md-block">
@@ -329,92 +303,86 @@ const AdminWalletManagement = () => {
                     )}
 
                     <Badge bg="dark" className="px-3 py-2 fs-6 shadow-sm" style={{ borderRadius: '8px' }}>
-                        {users.length} Clients
+                        {users.length} {t('admin_users.user', 'Clients')}s
                     </Badge>
                 </div>
             </div>
 
-            {message && (
-                <Alert variant={message.type} className="border-0 shadow-sm animate__animated animate__fadeIn mb-4" dismissible onClose={() => setMessage(null)}>
-                    <i className={`bi bi-${message.type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2`}></i>
-                    {message.text}
-                </Alert>
-            )}
-
-            <Row className="mb-4">
+            <Row className="mb-3 g-2">
                 <Col xs={12}>
-                    <div className="d-flex justify-content-between align-items-center bg-white p-3 rounded-3 shadow-sm border">
-                        <div className="d-flex align-items-center gap-3">
-                            <h5 className="mb-0 fw-bold text-muted">Actions Rapides</h5>
+                    <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center bg-white p-3 p-md-2 rounded-4 shadow-sm border gap-3">
+                        <div className="d-flex align-items-center gap-2 px-md-2">
+                            <h6 className="mb-0 fw-bold text-muted d-none d-md-block">Actions:</h6>
                             <Button
                                 variant="warning"
-                                className="text-white fw-bold px-4"
-                                style={{ borderRadius: '8px' }}
+                                className="text-white fw-bold px-4 py-2 flex-grow-1 flex-md-grow-0"
+                                style={{ borderRadius: '10px' }}
                                 onClick={() => {
                                     setIsIdVirement(true);
                                     setShowVirementModal(true);
                                 }}
                             >
                                 <i className="bi bi-person-badge me-2"></i>
-                                Virement par ID
+                                {t('admin_wallet_mgt.transfer_by_id', 'Virement par ID')}
                             </Button>
                         </div>
-                        <div className="d-flex gap-2">
-                            <Form.Select
-                                value={timeFilter}
-                                onChange={(e) => setTimeFilter(e.target.value)}
-                                style={{ borderRadius: '8px', cursor: 'pointer', border: '1px solid #dee2e6', width: 'auto' }}
-                                className="bg-white text-muted fw-bold shadow-sm"
-                            >
-                                <option value="month">Ce mois</option>
-                                <option value="3months">3 mois</option>
-                                <option value="6months">6 mois</option>
-                                <option value="year">Cette année</option>
-                                <option value="all">Tout l'historique</option>
-                            </Form.Select>
-                            <div className="position-relative" style={{ minWidth: '300px' }}>
-                                <i className="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                        <div className="d-flex flex-column flex-md-row gap-2 w-100 w-md-auto">
+                            <div className="d-flex gap-2">
+                                <Form.Select
+                                    value={timeFilter}
+                                    onChange={(e) => setTimeFilter(e.target.value)}
+                                    style={{ borderRadius: '10px' }}
+                                    className="bg-white text-muted fw-bold shadow-none border py-2 flex-grow-1 flex-md-grow-0"
+                                >
+                                    <option value="month">Mois</option>
+                                    <option value="3months">3m</option>
+                                    <option value="6months">6m</option>
+                                    <option value="year">1an</option>
+                                    <option value="all">Tout</option>
+                                </Form.Select>
+                                <Button
+                                    variant="outline-success"
+                                    onClick={exportTransactionsCSV}
+                                    className="border rounded-3"
+                                    style={{ borderRadius: '10px' }}
+                                >
+                                    <i className="bi bi-file-earmark-spreadsheet"></i>
+                                </Button>
+                            </div>
+                            <div className="position-relative flex-grow-1" style={{ minWidth: 'unset' }}>
+                                <i className="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted opacity-50"></i>
                                 <Form.Control
                                     type="text"
-                                    placeholder="Rechercher transaction (ID, Nom, Montant)..."
-                                    className="ps-5 border bg-light"
-                                    style={{ borderRadius: '8px' }}
+                                    placeholder="Rechercher transaction..."
+                                    className="ps-5 border bg-light shadow-none py-2"
+                                    style={{ borderRadius: '10px' }}
                                     value={txSearchTerm}
                                     onChange={(e) => setTxSearchTerm(e.target.value)}
                                 />
                             </div>
-                            <Button
-                                variant="outline-success"
-                                onClick={exportTransactionsCSV}
-                                style={{ borderRadius: '8px' }}
-                            >
-                                <i className="bi bi-file-earmark-spreadsheet me-2"></i>
-                                CSV
-                            </Button>
                         </div>
                     </div>
                 </Col>
             </Row>
 
             <Row className="g-4">
-                {/* Full Width Transactions History */}
                 <Col xs={12}>
-                    <Card className="border-0 shadow-sm overflow-hidden" style={{ borderRadius: '15px' }}>
-                        <Card.Header className="bg-white p-3 border-bottom-0">
-                            <h5 className="mb-0 fw-bold">Historique des Transactions</h5>
+                    <Card className="border-0 shadow-sm overflow-hidden tech-wallet-card" style={{ borderRadius: '20px' }}>
+                        <Card.Header className="bg-white p-3 border-bottom-0 d-none d-md-block">
+                            <h5 className="mb-0 fw-bold">{t('admin_wallet_mgt.history', 'Historique des Transactions')}</h5>
                         </Card.Header>
                         <Card.Body className="p-0">
-                            <div className="table-responsive">
-                                <Table hover className="align-middle mb-0">
-                                    <thead className="bg-light text-muted small text-uppercase">
+                            <div className="table-responsive-container">
+                                <Table hover className="align-middle mb-0 tech-wallet-table">
+                                    <thead className="bg-light text-muted small text-uppercase d-none d-md-table-header-group">
                                         <tr>
-                                            <th className="ps-4">Date</th>
-                                            <th>Utilisateur</th>
-                                            <th>Type</th>
-                                            <th>Description</th>
-                                            <th>Montant</th>
-                                            <th>Solde Après</th>
-                                            <th className="text-end pe-4">Actions</th>
+                                            <th className="ps-4 py-3">{t('admin_dashboard.date', 'Date')}</th>
+                                            <th className="py-3">{t('admin_wallet_mgt.user', 'Utilisateur')}</th>
+                                            <th className="py-3">{t('admin_wallet_mgt.type', 'Type')}</th>
+                                            <th className="py-3">Description</th>
+                                            <th className="py-3">{t('admin_dashboard.amount', 'Montant')}</th>
+                                            <th className="py-3">{t('admin_wallet_mgt.balance', 'Solde')}</th>
+                                            <th className="text-end pe-4 py-3">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -422,61 +390,64 @@ const AdminWalletManagement = () => {
                                             filteredTransactions.map((tx) => {
                                                 const u = users.find(usr => usr.email === tx.userEmail || usr.id === tx.userId);
                                                 return (
-                                                    <tr key={tx.id}>
-                                                        <td className="ps-4 text-nowrap text-muted small">
-                                                            {new Date(tx.date).toLocaleDateString('fr-FR', {
-                                                                day: '2-digit', month: 'short', year: 'numeric',
-                                                                hour: '2-digit', minute: '2-digit'
-                                                            })}
+                                                    <tr key={tx.id} className="tech-wallet-row">
+                                                        <td className="ps-3 ps-md-4 py-3 wallet-date-cell">
+                                                            <div className="text-muted small">
+                                                                {new Date(tx.date).toLocaleDateString('fr-FR', {
+                                                                    day: '2-digit', month: 'short', year: 'numeric'
+                                                                })}
+                                                                <span className="d-none d-md-inline ms-1 opacity-50">
+                                                                    {new Date(tx.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                                                </span>
+                                                            </div>
                                                         </td>
-                                                        <td>
+                                                        <td className="py-3 wallet-user-cell">
                                                             <div className="d-flex align-items-center">
-                                                                <div className="bg-light rounded-circle d-flex align-items-center justify-content-center me-2 text-muted border" style={{ width: '32px', height: '32px' }}>
+                                                                <div className="bg-light rounded-circle d-flex align-items-center justify-content-center me-2 text-muted border" style={{ width: '32px', height: '32px', fontSize: '1rem' }}>
                                                                     {u?.avatar || '👤'}
                                                                 </div>
                                                                 <div>
-                                                                    <div className="fw-bold text-dark small">{u?.name || 'Inconnu'}</div>
-                                                                    <div className="text-muted" style={{ fontSize: '0.7rem' }}>ID: {u?.id || tx.userId}</div>
+                                                                    <div className="fw-bold text-dark small">{u?.name || 'Client'}</div>
+                                                                    <div className="text-muted d-none d-md-block" style={{ fontSize: '0.65rem' }}>ID: {u?.id || tx.userId}</div>
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td>
-                                                            <Badge bg={tx.status === 'cancelled' ? 'secondary' : (tx.type === 'credit' ? 'success' : 'danger')} className="px-2" style={{ borderRadius: '5px' }}>
-                                                                {tx.status === 'cancelled' ? 'ANNULÉE' : (
-                                                                    tx.description?.toLowerCase().includes('remboursement') ? 'REMBOURSEMENT' :
-                                                                        tx.type === 'credit' ? 'VIREMENT' : 'ACHAT'
-                                                                )}
+                                                        <td className="py-3 wallet-type-cell">
+                                                            <Badge bg={tx.status === 'cancelled' ? 'secondary' : (tx.type === 'credit' ? 'success' : 'danger')} className="px-2 py-1 rounded-pill" style={{ fontSize: '0.6rem', textTransform: 'uppercase' }}>
+                                                                {tx.status === 'cancelled' ? 'ANNULÉE' : (tx.type === 'credit' ? 'VIREMENT' : 'ACHAT')}
                                                             </Badge>
                                                         </td>
-                                                        <td className="small text-muted text-truncate" style={{ maxWidth: '200px' }}>
-                                                            {tx.description}
+                                                        <td className="d-none d-lg-table-cell py-3">
+                                                            <div className="small text-muted text-truncate" style={{ maxWidth: '150px' }}>
+                                                                {tx.description}
+                                                            </div>
                                                         </td>
-                                                        <td className={`fw-bold ${tx.status === 'cancelled' ? 'text-decoration-line-through text-muted' : (tx.type === 'credit' ? 'text-success' : 'text-danger')}`}>
-                                                            {tx.type === 'credit' ? '+' : '-'}{(tx.amount || 0).toLocaleString()} FCFA
+                                                        <td className="py-3 wallet-amount-cell">
+                                                            <div className={`fw-bold ${tx.status === 'cancelled' ? 'text-decoration-line-through text-muted' : (tx.type === 'credit' ? 'text-success' : 'text-danger')}`}>
+                                                                {tx.type === 'credit' ? '+' : '-'}{(tx.amount || 0).toLocaleString()} <small>FCFA</small>
+                                                            </div>
                                                         </td>
-                                                        <td className="fw-bold text-dark">
-                                                            {(tx.balanceAfter || 0).toLocaleString()} FCFA
+                                                        <td className="d-none d-sm-table-cell py-3">
+                                                            <div className="fw-bold text-dark small">{(tx.balanceAfter || 0).toLocaleString()} <small>FCFA</small></div>
                                                         </td>
-                                                        <td className="text-end pe-4">
-                                                            <div className="d-flex align-items-center justify-content-end gap-2">
+                                                        <td className="text-end pe-3 pe-md-4 py-3 wallet-actions-cell">
+                                                            <div className="d-flex align-items-center justify-content-end gap-1">
                                                                 <Button
                                                                     variant="light"
-                                                                    size="sm"
-                                                                    className="btn-sm-square border"
-                                                                    title="Voir l'historique de ce client"
-                                                                    onClick={() => setTxSearchTerm(u?.id || tx.userId)}
+                                                                    className="p-2 rounded-circle border-0 bg-transparent text-primary"
+                                                                    onClick={() => setSelectedTransaction(tx)}
+                                                                    title="Détails"
                                                                 >
-                                                                    <i className="bi bi-clock-history text-primary"></i>
+                                                                    <i className="bi bi-eye-fill"></i>
                                                                 </Button>
                                                                 {tx.type === 'credit' && tx.status !== 'cancelled' && (
                                                                     <Button
                                                                         variant="light"
-                                                                        size="sm"
-                                                                        className="btn-sm-square border"
+                                                                        className="p-2 rounded-circle border-0 bg-transparent text-danger"
                                                                         onClick={() => handleUndoTransaction(tx.id)}
-                                                                        title="Annuler cette transaction"
+                                                                        title="Annuler"
                                                                     >
-                                                                        <i className="bi bi-x-lg text-danger"></i>
+                                                                        <i className="bi bi-x-circle-fill"></i>
                                                                     </Button>
                                                                 )}
                                                             </div>
@@ -486,9 +457,9 @@ const AdminWalletManagement = () => {
                                             })
                                         ) : (
                                             <tr>
-                                                <td colSpan="6" className="text-center p-5 text-muted">
-                                                    <i className="bi bi-search fs-1 d-block mb-3 opacity-25"></i>
-                                                    Aucune transaction trouvée pour "{txSearchTerm}"
+                                                <td colSpan="7" className="text-center p-5 text-muted">
+                                                    <i className="bi bi-search fs-1 d-block mb-3 opacity-10"></i>
+                                                    Aucune transaction trouvée
                                                 </td>
                                             </tr>
                                         )}
@@ -499,6 +470,34 @@ const AdminWalletManagement = () => {
                     </Card>
                 </Col>
             </Row>
+
+            <style>{`
+                .tech-wallet-row { transition: all 0.2s ease; border-bottom: 1px solid #f8f9fa; }
+                .tech-wallet-row:hover { background-color: #fcfcfc !important; }
+                
+                @media (max-width: 767.98px) {
+                    .tech-wallet-card { background: transparent !important; box-shadow: none !important; border: none !important; }
+                    .tech-wallet-table thead { display: none; }
+                    .tech-wallet-table tbody tr { 
+                        display: flex !important; 
+                        flex-wrap: wrap; 
+                        background: #fff; 
+                        margin-bottom: 12px; 
+                        border-radius: 16px; 
+                        padding: 15px; 
+                        border: 1px solid #eee; 
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.02); 
+                        position: relative;
+                        align-items: center;
+                    }
+                    .tech-wallet-table td { border: none !important; padding: 0 !important; }
+                    .wallet-date-cell { width: 100%; margin-bottom: 8px; border-bottom: 1px dashed #eee !important; padding-bottom: 6px !important; }
+                    .wallet-user-cell { width: auto; flex-grow: 1; }
+                    .wallet-type-cell { width: auto; margin-right: 15px; }
+                    .wallet-amount-cell { width: 100%; margin-top: 10px; padding-top: 8px !important; border-top: 1px solid #f8f9fa !important; }
+                    .wallet-actions-cell { position: absolute; top: 12px; right: 10px; width: auto !important; }
+                }
+            `}</style>
 
             {/* Virement Modal */}
             <Modal show={showVirementModal} onHide={handleCloseModal} centered>
@@ -680,8 +679,21 @@ const AdminWalletManagement = () => {
                     <Button variant="light" onClick={() => setSelectedTransaction(null)}>Fermer</Button>
                 </Modal.Footer>
             </Modal>
-        </Container>
+        </Container >
     );
 };
 
 export default AdminWalletManagement;
+
+
+// Auto-Injected fetch wrapper for JWT
+const authFetch = async (url, options = {}) => {
+    const token = localStorage.getItem('token');
+    if (token && url.includes('/api/')) {
+        options.headers = {
+            ...options.headers,
+            'Authorization': 'Bearer ' + token,
+        };
+    }
+    return fetch(url, options);
+};

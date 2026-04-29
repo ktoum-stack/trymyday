@@ -3,8 +3,10 @@ import { Row, Col, Card, Table, Button, Modal, Form, Badge } from 'react-bootstr
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../../context/LanguageContext';
 
 const AdminFinance = () => {
+    const { t } = useLanguage();
     const { expenses, addExpense, deleteExpense, updateExpense, orders, products } = useData();
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -74,102 +76,109 @@ const AdminFinance = () => {
 
     return (
         <div className="p-1">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2 className="mb-0">Gestion Financière</h2>
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                <h3 className="fw-bold mb-0">{t('admin_finance.title')}</h3>
                 <Button
                     variant="primary"
                     onClick={() => handleShow()}
-                    className="d-flex align-items-center"
+                    className="fw-bold px-4 py-2 rounded-pill shadow-sm"
                     style={{ background: '#ef9c52ff', borderColor: '#ef9c52ff' }}
                 >
-                    <i className="bi bi-plus-lg me-2"></i> Ajouter une dépense
+                    <i className="bi bi-plus-lg me-2"></i> {t('admin_finance.add_expense', 'Ajouter une dépense')}
                 </Button>
             </div>
 
-            <Row className="g-3 mb-4">
-                <Col md={3}>
-                    <Card className="border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' }}>
-                        <Card.Body>
-                            <h6 className="opacity-90">Chiffre d'Affaires</h6>
-                            <h3 className="fw-bold mb-0">{totalRevenue.toLocaleString()} FCFA</h3>
+            <Row className="g-2 g-md-4 mb-4">
+                <Col xs={6} md={3}>
+                    <Card className="border-0 shadow-sm text-white h-100" style={{ background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', borderRadius: '15px' }}>
+                        <Card.Body className="p-3">
+                            <h6 className="opacity-75 small fw-bold text-uppercase">{t('admin_dashboard.revenue')}</h6>
+                            <h4 className="fw-bold mb-0" style={{ fontSize: '1.1rem' }}>{totalRevenue.toLocaleString()} <small>FCFA</small></h4>
                         </Card.Body>
                     </Card>
                 </Col>
-                <Col md={3}>
-                    <Card className="border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)' }}>
-                        <Card.Body>
-                            <h6 className="opacity-90">Investissement</h6>
-                            <h3 className="fw-bold mb-0">{grossProfit.toLocaleString()} FCFA</h3>
+                <Col xs={6} md={3}>
+                    <Card className="border-0 shadow-sm text-white h-100" style={{ background: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)', borderRadius: '15px' }}>
+                        <Card.Body className="p-3">
+                            <h6 className="opacity-75 small fw-bold text-uppercase">{t('admin_finance.purchase_cost', 'Investissement')}</h6>
+                            <h4 className="fw-bold mb-0" style={{ fontSize: '1.1rem' }}>{grossProfit.toLocaleString()} <small>FCFA</small></h4>
                         </Card.Body>
                     </Card>
                 </Col>
-                <Col md={3}>
-                    <Card className="border-0 shadow-sm text-white" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
-                        <Card.Body>
-                            <h6 className="opacity-90">Charges Fixes</h6>
-                            <h3 className="fw-bold mb-0">{totalExpenses.toLocaleString()} FCFA</h3>
+                <Col xs={6} md={3}>
+                    <Card className="border-0 shadow-sm text-white h-100" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', borderRadius: '15px' }}>
+                        <Card.Body className="p-3">
+                            <h6 className="opacity-75 small fw-bold text-uppercase">{t('admin_dashboard.fixed_costs', 'Charges Fixes')}</h6>
+                            <h4 className="fw-bold mb-0" style={{ fontSize: '1.1rem' }}>{totalExpenses.toLocaleString()} <small>FCFA</small></h4>
                         </Card.Body>
                     </Card>
                 </Col>
-                <Col md={3}>
-                    <Card className="border-0 shadow-sm text-white" style={{ background: netProfit >= 0 ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' : 'linear-gradient(135deg, #ff0844 0%, #ffb199 100%)' }}>
-                        <Card.Body>
-                            <h6 className="opacity-90">Bénéfice Net</h6>
-                            <h3 className="fw-bold mb-0">{netProfit.toLocaleString()} FCFA</h3>
+                <Col xs={6} md={3}>
+                    <Card className="border-0 shadow-sm text-white h-100" style={{ background: netProfit >= 0 ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' : 'linear-gradient(135deg, #ff0844 0%, #ffb199 100%)', borderRadius: '15px' }}>
+                        <Card.Body className="p-3">
+                            <h6 className="opacity-75 small fw-bold text-uppercase">{t('admin_finance.net_profit')}</h6>
+                            <h4 className="fw-bold mb-0" style={{ fontSize: '1.1rem' }}>{netProfit.toLocaleString()} <small>FCFA</small></h4>
                         </Card.Body>
                     </Card>
                 </Col>
             </Row>
 
-            <Card className="border-0 shadow-sm">
-                <Card.Header className="bg-white border-0 py-3">
-                    <h5 className="mb-0">Historique des Dépenses</h5>
+            <Card className="border-0 shadow-sm overflow-hidden" style={{ borderRadius: '20px' }}>
+                <Card.Header className="bg-white border-0 py-3 d-none d-md-block">
+                    <h5 className="mb-0 fw-bold">{t('admin_finance.cashflow', 'Historique des Dépenses')}</h5>
                 </Card.Header>
                 <Card.Body className="p-0">
-                    <div className="table-responsive">
-                        <Table hover className="align-middle mb-0">
-                            <thead className="bg-light text-muted small text-uppercase">
+                    <div className="table-responsive-container">
+                        <Table hover className="align-middle mb-0 tech-finance-table">
+                            <thead className="bg-light text-muted small text-uppercase d-none d-md-table-header-group">
                                 <tr>
-                                    <th className="ps-4">Date</th>
-                                    <th>Description</th>
-                                    <th>Catégorie</th>
-                                    <th>Montant</th>
-                                    <th className="text-end pe-4">Actions</th>
+                                    <th className="ps-4 py-3">{t('admin_dashboard.date')}</th>
+                                    <th className="py-3">Description</th>
+                                    <th className="py-3">Catégorie</th>
+                                    <th className="py-3">{t('admin_dashboard.amount')}</th>
+                                    <th className="text-end pe-4 py-3">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {expenses.length === 0 ? (
                                     <tr>
                                         <td colSpan="5" className="text-center py-5 text-muted">
+                                            <i className="bi bi-receipt fs-1 d-block mb-2 opacity-25"></i>
                                             Aucune dépense enregistrée
                                         </td>
                                     </tr>
                                 ) : (
                                     expenses.map(expense => (
-                                        <tr key={expense.id}>
-                                            <td className="ps-4 small">{expense.date}</td>
-                                            <td className="fw-medium">{expense.description}</td>
-                                            <td>
-                                                <Badge bg="light" text="dark" className="border">
+                                        <tr key={expense.id} className="tech-finance-row">
+                                            <td className="ps-3 ps-md-4 py-3 finance-date-cell small text-muted">
+                                                {new Date(expense.date).toLocaleDateString('fr-FR')}
+                                            </td>
+                                            <td className="py-3 finance-desc-cell fw-bold text-dark">{expense.description}</td>
+                                            <td className="py-3 finance-cat-cell">
+                                                <Badge bg="light" text="dark" className="border px-2 py-1 rounded-pill small fw-medium">
                                                     {expense.category}
                                                 </Badge>
                                             </td>
-                                            <td className="fw-bold text-danger">-{Number(expense.amount).toLocaleString()} FCFA</td>
-                                            <td className="text-end pe-4">
-                                                <Button
-                                                    variant="link"
-                                                    className="text-primary p-0 me-3"
-                                                    onClick={() => handleShow(expense)}
-                                                >
-                                                    <i className="bi bi-pencil"></i>
-                                                </Button>
-                                                <Button
-                                                    variant="link"
-                                                    className="text-danger p-0"
-                                                    onClick={() => deleteExpense(expense.id)}
-                                                >
-                                                    <i className="bi bi-trash"></i>
-                                                </Button>
+                                            <td className="py-3 finance-amount-cell fw-bold text-danger">
+                                                -{Number(expense.amount).toLocaleString()} <small>FCFA</small>
+                                            </td>
+                                            <td className="text-end pe-3 pe-md-4 py-3 finance-actions-cell">
+                                                <div className="d-flex justify-content-end gap-1">
+                                                    <Button
+                                                        variant="light"
+                                                        className="p-2 rounded-circle border-0 bg-transparent text-primary"
+                                                        onClick={() => handleShow(expense)}
+                                                    >
+                                                        <i className="bi bi-pencil-fill"></i>
+                                                    </Button>
+                                                    <Button
+                                                        variant="light"
+                                                        className="p-2 rounded-circle border-0 bg-transparent text-danger"
+                                                        onClick={() => deleteExpense(expense.id)}
+                                                    >
+                                                        <i className="bi bi-trash-fill"></i>
+                                                    </Button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -179,6 +188,30 @@ const AdminFinance = () => {
                     </div>
                 </Card.Body>
             </Card>
+
+            <style>{`
+                .tech-finance-row { transition: all 0.2s ease; border-bottom: 1px solid #f8f9fa; }
+                .tech-finance-row:hover { background-color: #fcfcfc !important; }
+                
+                @media (max-width: 767.98px) {
+                    .tech-finance-table thead { display: none; }
+                    .tech-finance-table tbody tr { 
+                        display: flex !important; 
+                        flex-wrap: wrap; 
+                        background: #fff; 
+                        margin-bottom: 1px; 
+                        padding: 15px; 
+                        position: relative;
+                        align-items: center;
+                    }
+                    .tech-finance-table td { border: none !important; padding: 0 !important; }
+                    .finance-date-cell { width: 100%; margin-bottom: 4px; font-size: 0.75rem !important; }
+                    .finance-desc-cell { width: 100%; font-size: 1rem; margin-bottom: 8px; }
+                    .finance-cat-cell { width: auto; margin-right: 15px; }
+                    .finance-amount-cell { width: auto; flex-grow: 1; text-align: right; margin-right: 40px; }
+                    .finance-actions-cell { position: absolute; bottom: 12px; right: 10px; width: auto !important; }
+                }
+            `}</style>
 
             <Modal show={showModal} onHide={handleClose} centered>
                 <Modal.Header closeButton className="border-0 pb-0">

@@ -1,0 +1,55 @@
+/* RTL Support for Arabic */
+[dir="rtl"] {
+    text-align: right;
+}
+
+[dir="rtl"] .ms-auto {
+    margin-right: auto !important;
+    margin-left: 0 !important;
+}
+
+[dir="rtl"] .me-auto {
+    margin-left: auto !important;
+    margin-right: 0 !important;
+}
+
+[dir="rtl"] .text-end {
+    text-align: left !important;
+}
+
+[dir="rtl"] .text-start {
+    text-align: right !important;
+}
+
+[dir="rtl"] i.me-1, [dir="rtl"] i.me-2, [dir="rtl"] i.me-3 {
+    margin-left: 0.5rem !important;
+    margin-right: 0 !important;
+}
+
+[dir="rtl"] .action-item i.me-xl-1 {
+    margin-left: 0.25rem !important;
+    margin-right: 0 !important;
+}
+
+[dir="rtl"] .category-circle-wrapper {
+    margin-left: 0;
+}
+
+[dir="rtl"] .sidebar-mega-menu {
+    text-align: right;
+}
+
+[dir="rtl"] .category-sidebar {
+    border-left: 1px solid #dee2e6 !important;
+    border-right: none !important;
+}
+
+[dir="rtl"] .sidebar-item {
+    border-right: 4px solid transparent;
+    border-left: none;
+}
+
+[dir="rtl"] .sidebar-item.active {
+    border-right-color: #ff6000;
+    border-left-color: transparent;
+}

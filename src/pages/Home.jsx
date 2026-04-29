@@ -5,11 +5,12 @@ import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import ProductCard from '../components/ProductCard';
+import TranslatedText from '../components/TranslatedText';
 
 const Home = () => {
     const { products } = useData();
     const { user } = useAuth();
-    const { NoTranslate } = useLanguage();
+    const { NoTranslate, t } = useLanguage();
     const navigate = useNavigate();
     const scrollRef = useRef(null);
 
@@ -58,7 +59,7 @@ const Home = () => {
             bgColor: '#F47B4E',
             products: [
                 { img: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=400&q=80', price: '4500 FCFA' },
-                { img: 'https://images.unsplash.com/photo-1539109132314-347f854181f0?auto=format&fit=crop&w=400&q=80', price: '3200 FCFA' }
+                { img: 'https://tse2.mm.bing.net/th/id/OIP.da95wHlDNb0Ozm9JP5l7CgHaFA?rs=1&pid=ImgDetMain&o=7&rm=3', price: '3200 FCFA' }
             ]
         },
         {
@@ -67,7 +68,7 @@ const Home = () => {
             slogan: 'Nouveau Look, Nouveau Vous',
             bgColor: '#9B6B9D',
             products: [
-                { img: 'https://images.unsplash.com/photo-1488161628813-f4460f872be4?auto=format&fit=crop&w=400&q=80', price: '5800 FCFA' },
+                { img: 'https://www.marketingturkiye.com.tr/wp-content/uploads/2020/09/shutterstock_image-82.jpg', price: '5800 FCFA' },
                 { img: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=400&q=80', price: '4900 FCFA' }
             ]
         },
@@ -87,7 +88,7 @@ const Home = () => {
             slogan: 'Élégance Contemporaine',
             bgColor: '#4A8B9C',
             products: [
-                { img: 'https://images.unsplash.com/photo-1532453288672-3a27e9be4efd?auto=format&fit=crop&w=400&q=80', price: '25000 FCFA' },
+                { img: 'https://fastarz.com/wp-content/uploads/2024/04/img_1666380551_11zon-2-1024x683.jpeg', price: '25000 FCFA' },
                 { img: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=400&q=80', price: '35000 FCFA' }
             ]
         },
@@ -97,7 +98,7 @@ const Home = () => {
             slogan: 'Prenez Soin de Vous',
             bgColor: '#E57373',
             products: [
-                { img: 'https://images.unsplash.com/photo-1596462502278-27bfdc4033c8?auto=format&fit=crop&w=400&q=80', price: '2500 FCFA' },
+                { img: 'https://www.theodysseyonline.com/media-library/image.jpg?id=10758141&width=980', price: '2500 FCFA' },
                 { img: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=400&q=80', price: '4500 FCFA' }
             ]
         },
@@ -124,16 +125,16 @@ const Home = () => {
             {/* --- 1. CIRCULAR CATEGORY NAVIGATION  --- */}
             <div className="category-scroll-container py-1 border-bottom shadow-sm bg-white sticky-top" style={{ zIndex: 1020, top: '1px' }}>
                 <Container>
-                    <div className="d-flex justify-content-center overflow-auto gap-3 py-1 no-scrollbar scroll-pill-container" style={{ WebkitOverflowScrolling: 'touch' }}>
+                    <div className="d-flex justify-content-start justify-content-md-center overflow-auto gap-2 gap-md-3 py-1 no-scrollbar scroll-pill-container" style={{ WebkitOverflowScrolling: 'touch' }}>
                         {categories.map((cat, idx) => (
                             <Link
                                 key={idx}
                                 to={cat.link}
                                 className="text-decoration-none text-center d-flex flex-column align-items-center gap-1 group category-pill-item"
-                                style={{ minWidth: '75px' }}
+                                style={{ minWidth: '60px' }}
                             >
-                                <div className="category-circle-wrapper position-relative p-1 rounded-circle border border-2 border-warning hover-scale"
-                                    style={{ width: '64px', height: '64px', transition: 'all 0.3s ease' }}>
+                                <div className="category-circle-wrapper position-relative p-1 rounded-circle border border-2 border-warning hover-scale cat-circle-size"
+                                    style={{ transition: 'all 0.3s ease' }}>
                                     <div className="rounded-circle overflow-hidden w-100 h-100 border">
                                         <img
                                             src={cat.image}
@@ -142,97 +143,81 @@ const Home = () => {
                                         />
                                     </div>
                                 </div>
-                                <span className="small fw-bold text-dark text-nowrap" style={{ fontSize: '0.78rem' }}>{cat.name}</span>
+                                <span className="fw-bold text-dark text-nowrap cat-label-size">{t(`categories.${cat.name.toLowerCase()}`, cat.name)}</span>
                             </Link>
                         ))}
                     </div>
                 </Container>
             </div>
 
-            {/* --- 2. DUAL TOP CAROUSELS --- */}
-            <Container className="py-2 mb-4">
-                <Row className="g-3">
-                    {/* Left Carousel: Femme Focus */}
-                    <Col md={6}>
-                        <div className="rounded-4 overflow-hidden shadow-sm position-relative" style={{ height: '380px' }}>
-                            <Carousel interval={5000} fade className="h-100 mini-hero">
-                                <Carousel.Item className="h-100">
-                                    <div className="h-100 w-100 position-relative">
-                                        <img
-                                            src="https://images.unsplash.com/photo-1591085686350-798c0f9faf7c?auto=format&fit=crop&w=1000&q=80"
-                                            className="w-100 h-100 object-fit-cover"
-                                            alt="Mode Femme"
-                                            style={{ objectPosition: 'center 20%' }}
-                                        />
-                                        <div className="position-absolute bottom-0 start-0 w-100 p-4" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.8))' }}>
-                                            <span className="badge bg-warning mb-2">MODE FEMME</span>
-                                            <h3 className="text-white fw-bold mb-2">ÉLÉGANCE AU FÉMININ</h3>
-                                            <Link to="/shop?cat=Femme" className="text-white text-decoration-none small fw-bold">DÉCOUVRIR →</Link>
-                                        </div>
+            {/* --- 2. MAIN TOP CAROUSEL --- */}
+            <Container className="py-2 py-md-4 mb-3 mb-md-5">
+                <div className="rounded-4 overflow-hidden shadow-lg position-relative main-carousel-container" style={{ transition: 'all 0.5s ease' }}>
+                    <Carousel interval={6000} fade className="h-100 main-hero-carousel" indicators={true}>
+                        <Carousel.Item className="h-100">
+                            <div className="h-100 w-100 position-relative">
+                                <img
+                                    src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1600&q=90"
+                                    className="w-100 h-100 object-fit-cover"
+                                    alt="Mode Luxe Femme"
+                                    style={{ objectPosition: 'center 40%' }}
+                                />
+                                <div className="position-absolute h-100 w-100 top-0 start-0 d-flex align-items-center hero-overlay-left">
+                                    <div className="ps-4 ps-md-5 ms-md-5 text-white animate-slide-right hero-text-wrapper">
+                                        <span className="badge bg-warning text-dark mb-2 px-3 py-2 fw-bold rounded-pill responsive-badge" style={{ letterSpacing: '1px' }}>{t('nav.new_collection')}</span>
+                                        <h1 className="fw-bold mb-3 text-shadow responsive-heading">{t('nav.elegance_reinvented')}</h1>
+                                        <p className="lead mb-4 responsive-desc text-center" style={{ maxWidth: '500px', opacity: 0.9 }}>{t('nav.hero_description_1')}</p>
+                                        <Link to="/shop?cat=Femme" className="btn btn-warning btn-lg rounded-pill px-5 fw-bold shadow-sm hover-scale responsive-btn">{t('nav.discover')}</Link>
                                     </div>
-                                </Carousel.Item>
-                                <Carousel.Item className="h-100">
-                                    <div className="h-100 w-100 position-relative">
-                                        <img
-                                            src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1000&q=80"
-                                            className="w-100 h-100 object-fit-cover"
-                                            alt="Maison"
-                                        />
-                                        <div className="position-absolute bottom-0 start-0 w-100 p-4" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.8))' }}>
-                                            <span className="badge bg-info mb-2">MAISON</span>
-                                            <h3 className="text-white fw-bold mb-2">DÉCO & STYLE</h3>
-                                            <Link to="/shop?cat=Maison" className="text-white text-decoration-none small fw-bold">EXPLORER →</Link>
-                                        </div>
-                                    </div>
-                                </Carousel.Item>
-                            </Carousel>
-                        </div>
-                    </Col>
+                                </div>
+                            </div>
+                        </Carousel.Item>
 
-                    {/* Right Carousel: Homme & Tech Focus */}
-                    <Col md={6}>
-                        <div className="rounded-4 overflow-hidden shadow-sm position-relative" style={{ height: '380px' }}>
-                            <Carousel interval={5500} fade className="h-100 mini-hero">
-                                <Carousel.Item className="h-100">
-                                    <div className="h-100 w-100 position-relative">
-                                        <img
-                                            src="https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?auto=format&fit=crop&w=1000&q=80"
-                                            className="w-100 h-100 object-fit-cover"
-                                            alt="Mode Homme"
-                                            style={{ objectPosition: 'center 10%' }}
-                                        />
-                                        <div className="position-absolute bottom-0 start-0 w-100 p-4" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.8))' }}>
-                                            <span className="badge bg-primary mb-2">MODE HOMME</span>
-                                            <h3 className="text-white fw-bold mb-2">STYLE MODERNE</h3>
-                                            <Link to="/shop?cat=Homme" className="text-white text-decoration-none small fw-bold">DÉCOUVRIR →</Link>
-                                        </div>
+                        <Carousel.Item className="h-100">
+                            <div className="h-100 w-100 position-relative">
+                                <img
+                                    src="https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&w=1600&q=90"
+                                    className="w-100 h-100 object-fit-cover"
+                                    alt="Style Homme"
+                                    style={{ objectPosition: 'center 20%' }}
+                                />
+                                <div className="position-absolute h-100 w-100 top-0 start-0 d-flex align-items-center hero-overlay-left">
+                                    <div className="ps-4 ps-md-5 ms-md-5 text-white animate-slide-right hero-text-wrapper">
+                                        <span className="badge bg-primary mb-2 px-3 py-2 fw-bold rounded-pill responsive-badge" style={{ letterSpacing: '1px' }}>{t('nav.men_fashion')}</span>
+                                        <h1 className="fw-bold mb-3 text-shadow responsive-heading">{t('nav.modern_style')}</h1>
+                                        <p className="lead mb-4 responsive-desc text-center" style={{ maxWidth: '500px', opacity: 0.9 }}>{t('nav.hero_description_2')}</p>
+                                        <Link to="/shop?cat=Homme" className="btn btn-primary btn-lg rounded-pill px-5 fw-bold shadow-sm hover-scale responsive-btn">{t('nav.explore')}</Link>
                                     </div>
-                                </Carousel.Item>
-                                <Carousel.Item className="h-100">
-                                    <div className="h-100 w-100 position-relative">
-                                        <img
-                                            src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1000&q=80"
-                                            className="w-100 h-100 object-fit-cover"
-                                            alt="Technologie"
-                                        />
-                                        <div className="position-absolute bottom-0 start-0 w-100 p-4" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.8))' }}>
-                                            <span className="badge bg-info mb-2">NOUVEAUTÉS TECH</span>
-                                            <h3 className="text-white fw-bold mb-2">INNOVATION</h3>
-                                            <Link to="/shop?cat=Électronique" className="text-white text-decoration-none small fw-bold">VOIR PLUS →</Link>
-                                        </div>
+                                </div>
+                            </div>
+                        </Carousel.Item>
+
+                        <Carousel.Item className="h-100">
+                            <div className="h-100 w-100 position-relative">
+                                <img
+                                    src="https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=1600&q=90"
+                                    className="w-100 h-100 object-fit-cover"
+                                    alt="Shopping Tech"
+                                />
+                                <div className="position-absolute h-100 w-100 top-0 start-0 d-flex align-items-center justify-content-center text-center hero-overlay-center">
+                                    <div className="text-white hero-text-wrapper px-3">
+                                        <span className="badge bg-info text-dark mb-2 px-3 py-2 fw-bold rounded-pill responsive-badge" style={{ letterSpacing: '1px' }}>{t('nav.tech_exclusivity')}</span>
+                                        <h1 className="fw-bold mb-3 text-shadow animate-fade-up responsive-heading">{t('nav.innovation_tech')}</h1>
+                                        <p className="lead mb-4 responsive-desc text-center" style={{ maxWidth: '500px', margin: '0 auto', opacity: 0.9 }}>{t('nav.hero_description_3')}</p>
+                                        <Link to="/shop?cat=Électronique" className="btn btn-light btn-lg rounded-pill px-5 fw-bold text-dark hover-scale responsive-btn">{t('nav.see_tech')}</Link>
                                     </div>
-                                </Carousel.Item>
-                            </Carousel>
-                        </div>
-                    </Col>
-                </Row>
+                                </div>
+                            </div>
+                        </Carousel.Item>
+                    </Carousel>
+                </div>
             </Container>
 
             {/* --- 4. FEATURED PRODUCTS (HORIZONTAL SLIDER STYLE) --- */}
-            <Container className="mb-5 py-4 position-relative">
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                    <h3 className="fw-bold mb-0 border-start border-4 border-warning ps-3" style={{ fontSize: '1.5rem' }}>Les plus aimés</h3>
-                    <Link to="/shop" className="text-warning fw-bold text-decoration-none small">Voir Tout →</Link>
+            <Container className="mb-4 mb-md-5 py-2 py-md-4 position-relative">
+                <div className="d-flex justify-content-between align-items-center mb-3 mb-md-4">
+                    <h3 className="fw-bold mb-0 border-start border-4 border-warning ps-2 ps-md-3 responsive-section-title">{t('nav.most_loved')}</h3>
+                    <Link to="/shop" className="text-warning fw-bold text-decoration-none small">{t('common.view_all')} →</Link>
                 </div>
 
                 <div className="position-relative slider-wrapper px-md-2">
@@ -252,7 +237,7 @@ const Home = () => {
                         style={{ WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }}
                     >
                         {featuredProducts.map((product) => (
-                            <div key={product.id} style={{ minWidth: '220px', scrollSnapAlign: 'start' }}>
+                            <div key={product.id} className="featured-product-item" style={{ scrollSnapAlign: 'start' }}>
                                 <ProductCard product={product} />
                             </div>
                         ))}
@@ -271,23 +256,23 @@ const Home = () => {
 
 
             {/* --- 6. BRAND CAMPAIGN BANNERS (Trendyol Style) --- */}
-            <Container className="mb-5 pb-5">
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                    <h3 className="fw-bold mb-0 border-start border-4 border-warning ps-3" style={{ fontSize: '1.5rem' }}>Destinations de Marques</h3>
+            <Container className="mb-4 mb-md-5 pb-3">
+                <div className="d-flex justify-content-between align-items-center mb-3 mb-md-4">
+                    <h3 className="fw-bold mb-0 border-start border-4 border-warning ps-2 ps-md-3 responsive-section-title">{t('nav.brand_destinations')}</h3>
                 </div>
-                <Row className="g-4">
+                <Row className="g-3 g-md-4">
                     {brandCampaigns.map((campaign, idx) => (
-                        <Col key={idx} lg={4} md={6}>
+                        <Col key={idx} xs={6} lg={4}>
                             <div
-                                className="campaign-card d-flex rounded-4 overflow-hidden shadow-sm border h-100"
-                                style={{ cursor: 'pointer', transition: 'transform 0.3s ease' }}
+                                className="campaign-card d-flex rounded-3 rounded-md-4 overflow-hidden shadow-sm border h-100"
+                                style={{ cursor: 'pointer', transition: 'transform 0.3s ease', minHeight: '120px' }}
                                 onClick={() => navigate(`/shop?brand=${encodeURIComponent(campaign.brand)}`)}
                             >
                                 {/* Left: Product Previews */}
-                                <div className="d-flex p-2 bg-white gap-2 align-items-center justify-content-center" style={{ width: '60%' }}>
+                                <div className="d-flex p-1 p-md-2 bg-white gap-1 gap-md-2 align-items-center justify-content-center" style={{ width: '60%' }}>
                                     {campaign.products.map((p, i) => (
                                         <div key={i} className="text-center">
-                                            <div className="rounded-3 overflow-hidden border" style={{ width: '85px', height: '110px' }}>
+                                            <div className="rounded-2 overflow-hidden border campaign-product-img">
                                                 <img src={p.img} alt="product" className="w-100 h-100 object-fit-cover" />
                                             </div>
                                         </div>
@@ -296,13 +281,15 @@ const Home = () => {
 
                                 {/* Right: Brand & Slogan */}
                                 <div
-                                    className="d-flex flex-column justify-content-center p-3 text-white text-center pb-4"
+                                    className="d-flex flex-column justify-content-center p-2 px-md-3 text-white text-center"
                                     style={{ width: '40%', backgroundColor: campaign.bgColor }}
                                 >
-                                    <div className="bg-white rounded-3 p-1 mb-3 d-flex align-items-center justify-content-center" style={{ height: '50px' }}>
-                                        <img src={campaign.logo} alt={campaign.brand} className="mw-100 mh-100 object-fit-contain" />
+                                    <div className="bg-white rounded-2 p-1 mb-1 mb-md-2 mx-auto d-flex align-items-center justify-content-center shadow-sm campaign-logo-container">
+                                        <img src={campaign.logo} alt={campaign.brand} className="mw-100 mh-100 object-fit-contain" style={{ padding: '2px' }} />
                                     </div>
-                                    <h6 className="fw-bold mb-0 lh-sm" style={{ fontSize: '0.85rem' }}>{campaign.slogan}</h6>
+                                    <h6 className="fw-bold mb-0 lh-sm campaign-slogan-text">
+                                        <TranslatedText>{campaign.slogan}</TranslatedText>
+                                    </h6>
                                 </div>
                             </div>
                         </Col>
@@ -311,14 +298,14 @@ const Home = () => {
             </Container>
 
             {/* --- 7. SIMPLE LOGO LIST (Refined) --- */}
-            <Container className="mb-5 pb-4">
-                <div className="d-flex flex-wrap justify-content-center gap-4 py-2 border-top pt-4 grayscale-img" style={{ opacity: 0.5 }}>
+            <Container className="mb-4 mb-md-5 pb-3 pb-md-4">
+                <div className="d-flex flex-wrap justify-content-center gap-3 gap-md-4 py-2 border-top pt-3 pt-md-4 grayscale-img" style={{ opacity: 0.5 }}>
                     {brands.map((brand, idx) => (
                         <img
                             key={idx}
                             src={brand.logo}
                             alt={brand.name}
-                            style={{ height: '25px', width: 'auto', objectFit: 'contain' }}
+                            className="brand-logo-bottom"
                             title={brand.name}
                         />
                     ))}
@@ -370,6 +357,12 @@ const Home = () => {
                     text-shadow: 0 2px 10px rgba(0,0,0,0.3);
                 }
 
+                .main-hero-carousel, 
+                .main-hero-carousel .carousel-inner,
+                .main-hero-carousel .carousel-item {
+                    height: 100% !important;
+                }
+
                 .main-hero-carousel .carousel-control-prev,
                 .main-hero-carousel .carousel-control-next {
                     width: 5%;
@@ -418,6 +411,77 @@ const Home = () => {
                 .campaign-card:hover {
                     transform: translateY(-8px);
                     box-shadow: 0 15px 30px rgba(0,0,0,0.12) !important;
+                }
+
+                .hero-overlay-left {
+                    background: linear-gradient(90deg, rgba(0,0,0,0.7) 0%, transparent 60%);
+                }
+                .hero-overlay-center {
+                    background: rgba(0,0,0,0.4);
+                    backdrop-filter: blur(2px);
+                }
+
+                /* Mobile Responsiveness Rules */
+                .main-carousel-container { height: 500px; }
+                .responsive-badge { font-size: 1rem; }
+                .responsive-heading { font-size: 3.5rem; }
+                .responsive-btn { font-size: 1.1rem; padding: 0.6rem 2rem; }
+                .featured-product-item { min-width: 220px; }
+                .responsive-section-title { font-size: 1.5rem; }
+                .campaign-product-img { width: 85px; height: 110px; }
+                .campaign-logo-container { height: 38px; width: 85%; max-width: 90px; }
+                .campaign-slogan-text { font-size: 0.75rem; }
+                .brand-logo-bottom { height: 25px; width: auto; object-fit: contain; }
+
+                /* Category circle default size */
+                .cat-circle-size { width: 64px; height: 64px; }
+                .cat-label-size { font-size: 0.78rem; }
+
+                @media (max-width: 767.98px) {
+                    .main-carousel-container { height: 320px !important; }
+                    .hero-overlay-left, .hero-overlay-center {
+                        background: rgba(0,0,0,0.55) !important;
+                        justify-content: center !important;
+                        text-align: center !important;
+                        backdrop-filter: none !important;
+                    }
+                    .hero-text-wrapper {
+                        padding: 0 1.5rem !important;
+                        margin: 0 !important;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    .responsive-badge { font-size: 0.65rem !important; margin-bottom: 0.3rem !important; padding: 0.25rem 0.6rem !important; }
+                    .responsive-heading { font-size: 1.25rem !important; margin-bottom: 0.4rem !important; line-height: 1.2; text-align: center !important; }
+                    .responsive-desc { 
+                        font-size: 0.8rem !important; 
+                        margin-bottom: 0.8rem !important; 
+                        line-height: 1.4 !important; 
+                        text-align: center !important; 
+                        opacity: 0.95 !important;
+                    }
+                    .responsive-btn { font-size: 0.8rem !important; padding: 0.4rem 1.2rem !important; margin-top: 0.2rem !important; }
+                    
+                    /* Category circles smaller on mobile */
+                    .cat-circle-size { width: 50px !important; height: 50px !important; }
+                    .cat-label-size { font-size: 0.65rem !important; }
+                    .category-pill-item { min-width: 52px !important; }
+
+                    .featured-product-item { min-width: 155px !important; }
+                    .responsive-section-title { font-size: 1.1rem !important; }
+                    
+                    /* Campaign Banners mobile adjustments */
+                    .campaign-product-img { width: 58px !important; height: 76px !important; }
+                    .campaign-logo-container { height: 26px !important; width: 90% !important; max-width: 68px !important; margin-bottom: 3px !important; }
+                    .campaign-slogan-text { font-size: 0.62rem !important; }
+                    
+                    /* Bottom brand logos */
+                    .brand-logo-bottom { height: 16px !important; }
+
+                    /* Reduce container padding on mobile */
+                    .container, .container-fluid { padding-left: 10px !important; padding-right: 10px !important; }
                 }
             `}</style>
         </div >

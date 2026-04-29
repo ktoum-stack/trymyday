@@ -2,25 +2,48 @@ import { Container, Row, Col, Card, Form, Button, Alert, Modal, Badge, ListGroup
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useWallet } from '../context/WalletContext';
 import API_BASE_URL from '../config';
+import { useLanguage } from '../context/LanguageContext';
 
 // Payment Imports
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 
 // Initialize Stripe (Replace placeholder with your actual key from .env)
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_TYooMQauvdEDq54NiTphI7jx');
 
 const CheckoutContent = () => {
-    const { cartItems, getCartTotal, clearCart } = useCart();
+    const { cartItems, getCartTotal, clearCart, getSelectedItems } = useCart();
     const { user } = useAuth();
     const { addOrder } = useData();
     const { balance, payWithWallet, hasSufficientBalance } = useWallet();
+    const { showToast, confirm } = useToast();
+    const { t } = useLanguage();
     const navigate = useNavigate();
+
+    if (!user) {
+        return (
+            <Container className="py-5 text-center">
+                <div className="mb-4">
+                    <i className="bi bi-lock-fill" style={{ fontSize: '4rem', color: '#dee2e6' }}></i>
+                </div>
+                <h2>{t('cart.login_required')}</h2>
+                <p className="text-muted mb-4">{t('cart.login_to_checkout')}</p>
+                <Button 
+                    variant="warning" 
+                    className="text-white fw-bold px-5 py-3 shadow-sm rounded-pill" 
+                    onClick={() => navigate('/login', { state: { from: '/checkout', message: 'Connectez-vous pour finaliser votre commande.' } })}
+                >
+                    {t('profile.login_btn')}
+                </Button>
+            </Container>
+        );
+    }
 
     // Stripe Hooks
     const stripe = useStripe();
@@ -34,7 +57,6 @@ const CheckoutContent = () => {
     const [paymentError, setPaymentError] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [estimatedDelivery, setEstimatedDelivery] = useState('');
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [addressToDelete, setAddressToDelete] = useState(null);
 
     // Load saved addresses
@@ -118,32 +140,33 @@ const CheckoutContent = () => {
     };
 
     // Delete address
-    const handleDeleteClick = (id) => {
-        setAddressToDelete(id);
-        setShowDeleteModal(true);
-    };
+    const handleDeleteClick = async (id) => {
+        const ok = await confirm({
+            title: t('profile.delete_address_title'),
+            message: t('profile.delete_address_msg'),
+            variant: 'danger',
+            confirmText: t('common.delete')
+        });
 
-    const confirmDelete = () => {
-        if (addressToDelete) {
-            const newAddresses = savedAddresses.filter(addr => addr.id !== addressToDelete);
+        if (ok) {
+            const newAddresses = savedAddresses.filter(addr => addr.id !== id);
             saveAddresses(newAddresses);
-            if (selectedAddressId === addressToDelete) {
+            if (selectedAddressId === id) {
                 setSelectedAddressId(null);
             }
-            setShowDeleteModal(false);
-            setAddressToDelete(null);
+            showToast('Adresse supprimée', 'success');
         }
     };
 
     const validateAddress = () => {
         if (!selectedAddressId && (savedAddresses.length === 0 || showNewAddressForm)) {
             if (!shippingData.fullName || !shippingData.phone || !shippingData.address || !shippingData.city) {
-                alert('Veuillez remplir tous les champs obligatoires de l\'adresse');
+                showToast('Veuillez remplir tous les champs obligatoires de l\'adresse', 'warning');
                 return false;
             }
         }
         if (!selectedAddressId && savedAddresses.length > 0 && !showNewAddressForm) {
-            alert('Veuillez sélectionner une adresse de livraison');
+            showToast('Veuillez sélectionner une adresse de livraison', 'warning');
             return false;
         }
         return true;
@@ -152,7 +175,7 @@ const CheckoutContent = () => {
     const processOrderSuccess = (orderData) => {
         addOrder(orderData);
         // Send confirmation email via backend
-        fetch(`${API_BASE_URL}/api/admin/order-email`, {
+        authFetch(`${API_BASE_URL}/api/admin/order-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ order: orderData, status: 'Confirmée' }),
@@ -173,10 +196,10 @@ const CheckoutContent = () => {
 
         try {
             // 1. Create PaymentIntent on Backend
-            const response = await fetch(`${API_BASE_URL}/api/payment/create-payment-intent`, {
+            const response = await authFetch(`${API_BASE_URL}/api/payment/create-payment-intent`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: getCartTotal(), currency: 'xof' }), // Assuming backend handles currency
+                body: JSON.stringify({ amount: getCartTotal(true), currency: 'xof' }), // Assuming backend handles currency
             });
             const data = await response.json();
 
@@ -187,7 +210,7 @@ const CheckoutContent = () => {
             // 2. Confirm Card Payment
             const result = await stripe.confirmCardPayment(data.clientSecret, {
                 payment_method: {
-                    card: elements.getElement(CardElement),
+                    card: elements.getElement(CardNumberElement),
                     billing_details: {
                         name: shippingData.fullName,
                         email: user.email,
@@ -225,11 +248,11 @@ const CheckoutContent = () => {
             phone: shippingData.phone,
             date: new Date().toISOString(),
             status: 'En attente',
-            subtotal: getCartTotal() - 1000,
+            subtotal: getCartTotal(true) - 1000,
             shippingCost: 1000,
-            total: getCartTotal(),
+            total: getCartTotal(true),
             paymentMethod: paymentMethod,
-            items: cartItems.map(item => ({
+            items: getSelectedItems().map(item => ({
                 id: item.id,
                 name: item.name,
                 price: item.price,
@@ -247,35 +270,63 @@ const CheckoutContent = () => {
         };
 
         if (paymentMethod === 'wallet') {
-            if (!hasSufficientBalance(getCartTotal())) {
+            if (!hasSufficientBalance(getCartTotal(true))) {
                 setPaymentError('❌ Solde insuffisant dans votre wallet.');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 return;
             }
-            const success = await payWithWallet(getCartTotal());
-            if (success) {
+            const result = await payWithWallet(getCartTotal(true), orderData.id);
+            if (result && result.success) {
                 processOrderSuccess(orderData);
             } else {
-                setPaymentError('❌ Erreur lors du paiement wallet.');
+                setPaymentError(`❌ Erreur lors du paiement wallet: ${result?.message || 'Erreur inconnue'}`);
             }
         } else if (paymentMethod === 'card') {
             const success = await handleCardPayment();
             if (success) {
                 processOrderSuccess(orderData);
             }
+        } else if (paymentMethod === 'fedapay') {
+            setIsProcessing(true);
+            try {
+                const response = await authFetch(`${API_BASE_URL}/api/fedapay/create-transaction`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        amount: getCartTotal(true),
+                        customer: {
+                            firstname: shippingData.fullName.split(' ')[0] || 'Client',
+                            lastname: shippingData.fullName.split(' ').slice(1).join(' ') || 'TRYMYDAY',
+                            email: user.email,
+                            phone: shippingData.phone
+                        }
+                    }),
+                });
+                const data = await response.json();
+                if (data.success && data.url) {
+                    // Save order temporary to localStorage or context to retrieve later?
+                    // For now, redirect to FedaPay
+                    window.location.href = data.url;
+                } else {
+                    throw new Error(data.error || data.message || 'Erreur FedaPay');
+                }
+            } catch (err) {
+                setPaymentError(`❌ Erreur FedaPay: ${err.message}`);
+                setIsProcessing(false);
+            }
         }
         // PayPal is handled by its own component buttons
     };
 
-    // Redirect if cart is empty
-    if (cartItems.length === 0 && !orderPlaced) {
+    // Redirect if cart is empty OR no items selected
+    if (getSelectedItems().length === 0 && !orderPlaced) {
         return (
             <Container className="py-5 text-center">
                 <Alert variant="light" className="border">
-                    <Alert.Heading>Panier vide</Alert.Heading>
-                    <p>Votre panier est vide. Ajoutez des produits pour passer une commande.</p>
-                    <Button variant="warning" className="text-white" onClick={() => navigate('/shop')}>
-                        Voir la boutique
+                    <Alert.Heading>Aucun article sélectionné</Alert.Heading>
+                    <p>Veuillez sélectionner au moins un article dans votre panier pour passer commande.</p>
+                    <Button variant="warning" className="text-white" onClick={() => navigate('/cart')}>
+                        Retour au panier
                     </Button>
                 </Alert>
             </Container>
@@ -285,8 +336,27 @@ const CheckoutContent = () => {
     if (orderPlaced && completedOrder) {
 
         return (
-            <Container className="py-5">
-                <Row className="justify-content-center">
+            <Container className="py-4 py-md-5">
+                {/* Payment Error Alert */}
+                {paymentError && (
+                    <Alert
+                        variant="danger"
+                        onClose={() => setPaymentError(null)}
+                        dismissible
+                        className="border-0 shadow-sm mb-4 animate__animated animate__shakeX"
+                        style={{ borderRadius: '12px' }}
+                    >
+                        <div className="d-flex align-items-center">
+                            <i className="bi bi-exclamation-octagon-fill fs-4 me-3"></i>
+                            <div>
+                                <h6 className="fw-bold mb-1">Erreur de paiement</h6>
+                                <p className="mb-0 small">{paymentError}</p>
+                            </div>
+                        </div>
+                    </Alert>
+                )}
+
+                <Row className="g-4 g-lg-5 justify-content-center">
                     <Col lg={8}>
                         <Card className="border-0 shadow-sm mb-4 text-center">
                             <Card.Body className="p-5">
@@ -294,7 +364,7 @@ const CheckoutContent = () => {
                                     style={{ width: '80px', height: '80px' }}>
                                     <i className="bi bi-check-lg text-white" style={{ fontSize: '3rem' }}></i>
                                 </div>
-                                <h2 className="fw-bold mb-2">Commande confirmée !</h2>
+                                <h2 className="fw-bold mb-2">{t('cart.order_confirmed')} !</h2>
                                 <Badge bg="warning" className="text-white px-3 py-2">
                                     Numéro: {completedOrder.id}
                                 </Badge>
@@ -319,7 +389,7 @@ const CheckoutContent = () => {
         <Container className="py-4 py-lg-5" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
             <div className="mb-4 d-flex align-items-center gap-2">
                 <Button variant="link" onClick={() => navigate('/cart')} className="p-0 text-decoration-none text-muted">
-                    <i className="bi bi-arrow-left me-1"></i> Retour au panier
+                    <i className="bi bi-arrow-left fs-4"></i>
                 </Button>
             </div>
 
@@ -335,7 +405,7 @@ const CheckoutContent = () => {
                     {/* ADDRESS SECTION */}
                     <div className="d-flex align-items-center mb-3">
                         <div className="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center fw-bold me-3" style={{ width: '32px', height: '32px' }}>1</div>
-                        <h4 className="mb-0 fw-bold">Adresse de livraison</h4>
+                        <h4 className="mb-0 fw-bold">{t('profile.addresses')}</h4>
                     </div>
 
                     <Card className="border-0 shadow-sm mb-4" style={{ borderRadius: '15px' }}>
@@ -380,33 +450,90 @@ const CheckoutContent = () => {
                             )}
 
                             {(savedAddresses.length === 0 || showNewAddressForm) && (
-                                <div className="bg-light p-4 rounded-4">
-                                    <h6 className="fw-bold mb-3">Nouvelle adresse</h6>
+                                <div className="p-3 bg-light rounded-4">
+                                    <h6 className="fw-bold mb-3 d-flex align-items-center">
+                                        <i className="bi bi-plus-circle me-2 text-warning"></i>
+                                        Nouvelle adresse de livraison
+                                    </h6>
                                     <Form>
-                                        <Row className="g-3">
-                                            <Col md={6}><Form.Control placeholder="Nom complet" value={shippingData.fullName} onChange={e => setShippingData({ ...shippingData, fullName: e.target.value })} /></Col>
-                                            <Col md={6}><Form.Control placeholder="Téléphone" value={shippingData.phone} onChange={e => setShippingData({ ...shippingData, phone: e.target.value })} /></Col>
-                                            <Col md={12}><Form.Control placeholder="Adresse" value={shippingData.address} onChange={e => setShippingData({ ...shippingData, address: e.target.value })} /></Col>
-                                            <Col md={6}><Form.Control placeholder="Ville" value={shippingData.city} onChange={e => setShippingData({ ...shippingData, city: e.target.value })} /></Col>
-                                            <Col md={6}><Form.Control placeholder="Code Postal" value={shippingData.postalCode} onChange={e => setShippingData({ ...shippingData, postalCode: e.target.value })} /></Col>
+                                        <Row className="g-2">
+                                            <Col md={6}>
+                                                <Form.Group>
+                                                    <Form.Label className="small mb-1 text-muted">Nom complet</Form.Label>
+                                                    <Form.Control 
+                                                        className="py-2 px-3 border-0 shadow-sm rounded-3"
+                                                        placeholder="Ex: Jean Dupont" 
+                                                        value={shippingData.fullName} 
+                                                        onChange={e => setShippingData({ ...shippingData, fullName: e.target.value })} 
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                            <Col md={6}>
+                                                <Form.Group>
+                                                    <Form.Label className="small mb-1 text-muted">Téléphone</Form.Label>
+                                                    <Form.Control 
+                                                        className="py-2 px-3 border-0 shadow-sm rounded-3"
+                                                        placeholder="+235 ..." 
+                                                        value={shippingData.phone} 
+                                                        onChange={e => setShippingData({ ...shippingData, phone: e.target.value })} 
+                                                    />
+                                                </Form.Group>
+                                            </Col>
                                             <Col md={12}>
-                                                <Form.Select
-                                                    value={shippingData.country}
-                                                    onChange={(e) => setShippingData({ ...shippingData, country: e.target.value })}
-                                                    required
-                                                >
-                                                    <option value="">Sélectionnez un pays</option>
-                                                    <option value="Tchad">🇹🇩 Tchad</option>
-                                                    <option value="France">🇫🇷 France</option>
-                                                    <option value="Turquie">🇹🇷 Turquie</option>
-                                                    <option value="Canada">🇨🇦 Canada</option>
-                                                    <option value="États-Unis">🇺🇸 États-Unis</option>
-                                                    <option value="Maroc">🇲🇦 Maroc</option>
-                                                    <option value="Sénégal">🇸🇳 Sénégal</option>
-                                                    <option value="Cameroun">🇨🇲 Cameroun</option>
-                                                    <option value="Côte d'Ivoire">🇨🇮 Côte d'Ivoire</option>
-                                                    <option value="Autre">🌍 Autre pays</option>
-                                                </Form.Select>
+                                                <Form.Group>
+                                                    <Form.Label className="small mb-1 text-muted">Adresse</Form.Label>
+                                                    <Form.Control 
+                                                        className="py-2 px-3 border-0 shadow-sm rounded-3"
+                                                        placeholder="Numéro de rue, Quartier..." 
+                                                        value={shippingData.address} 
+                                                        onChange={e => setShippingData({ ...shippingData, address: e.target.value })} 
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                            <Col md={6}>
+                                                <Form.Group>
+                                                    <Form.Label className="small mb-1 text-muted">Ville</Form.Label>
+                                                    <Form.Control 
+                                                        className="py-2 px-3 border-0 shadow-sm rounded-3"
+                                                        placeholder="Ville" 
+                                                        value={shippingData.city} 
+                                                        onChange={e => setShippingData({ ...shippingData, city: e.target.value })} 
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                            <Col md={6}>
+                                                <Form.Group>
+                                                    <Form.Label className="small mb-1 text-muted">Code Postal</Form.Label>
+                                                    <Form.Control 
+                                                        className="py-2 px-3 border-0 shadow-sm rounded-3"
+                                                        placeholder="Code Postal" 
+                                                        value={shippingData.postalCode} 
+                                                        onChange={e => setShippingData({ ...shippingData, postalCode: e.target.value })} 
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                            <Col md={12}>
+                                                <Form.Group>
+                                                    <Form.Label className="small mb-1 text-muted">Pays</Form.Label>
+                                                    <Form.Select
+                                                        className="py-2 px-3 border-0 shadow-sm rounded-3"
+                                                        value={shippingData.country}
+                                                        onChange={(e) => setShippingData({ ...shippingData, country: e.target.value })}
+                                                        required
+                                                    >
+                                                        <option value="">Sélectionnez un pays</option>
+                                                        <option value="Tchad">🇹🇩 Tchad</option>
+                                                        <option value="France">🇫🇷 France</option>
+                                                        <option value="Turquie">🇹🇷 Turquie</option>
+                                                        <option value="Canada">🇨🇦 Canada</option>
+                                                        <option value="États-Unis">🇺🇸 États-Unis</option>
+                                                        <option value="Maroc">🇲🇦 Maroc</option>
+                                                        <option value="Sénégal">🇸🇳 Sénégal</option>
+                                                        <option value="Cameroun">🇨🇲 Cameroun</option>
+                                                        <option value="Côte d'Ivoire">🇨🇮 Côte d'Ivoire</option>
+                                                        <option value="Autre">🌍 Autre pays</option>
+                                                    </Form.Select>
+                                                </Form.Group>
                                             </Col>
                                         </Row>
                                     </Form>
@@ -418,63 +545,149 @@ const CheckoutContent = () => {
                     {/* PAYMENT SECTION */}
                     <div className="d-flex align-items-center mb-3">
                         <div className="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center fw-bold me-3" style={{ width: '32px', height: '32px' }}>2</div>
-                        <h4 className="mb-0 fw-bold">Paiement</h4>
+                        <h4 className="mb-0 fw-bold">{t('cart.payment')}</h4>
                     </div>
 
-                    <Card className="border-0 shadow-sm mb-4" style={{ borderRadius: '15px' }}>
-                        <Card.Body className="p-4">
+                    <Card className="border-0 shadow-sm mb-4 overflow-hidden" style={{ borderRadius: '15px' }}>
+                        <Card.Body className="p-0">
                             {/* Wallet */}
-                            <div className={`p-2 rounded-4 border-2 mb-2 cursor-pointer ${paymentMethod === 'wallet' ? 'border-warning bg-light' : 'border-light'}`} onClick={() => setPaymentMethod('wallet')}>
+                            <div 
+                                className={`p-3 p-md-4 mb-0 cursor-pointer transition-all border-bottom ${paymentMethod === 'wallet' ? 'bg-light border-start border-4 border-warning' : 'bg-white'}`} 
+                                onClick={() => setPaymentMethod('wallet')}
+                                style={{ borderColor: paymentMethod === 'wallet' ? '#ff6000' : 'transparent' }}
+                            >
                                 <div className="d-flex justify-content-between align-items-center">
                                     <div className="d-flex align-items-center">
-                                        <i className="bi bi-wallet2 fs-5 me-2 text-warning"></i>
+                                        <div className="bg-light p-2 rounded-3 me-3">
+                                            <i className="bi bi-wallet2 fs-5 text-warning"></i>
+                                        </div>
                                         <div>
-                                            <h6 className="fw-bold mb-0">Wallet</h6>
-                                            <small className="text-muted">Solde: {balance.toLocaleString()} FCFA</small>
+                                            <h6 className="fw-bold mb-0">Mon Portefeuille (Wallet)</h6>
+                                            <small className="text-muted">Solde disponible: <span className="fw-bold text-success">{balance.toLocaleString()} FCFA</span></small>
                                         </div>
                                     </div>
-                                    <Form.Check type="radio" checked={paymentMethod === 'wallet'} readOnly />
+                                    <div className={`rounded-circle border-2 d-flex align-items-center justify-content-center ${paymentMethod === 'wallet' ? 'border-warning' : 'border-secondary'}`} style={{ width: '22px', height: '22px', border: '2px solid' }}>
+                                        {paymentMethod === 'wallet' && <div className="bg-warning rounded-circle" style={{ width: '12px', height: '12px' }}></div>}
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Stripe Card */}
-                            <div className={`p-2 rounded-4 border-2 mb-2 cursor-pointer ${paymentMethod === 'card' ? 'border-warning bg-light' : 'border-light'}`} onClick={() => setPaymentMethod('card')}>
+                            <div 
+                                className={`p-3 p-md-4 mb-0 cursor-pointer transition-all border-bottom ${paymentMethod === 'card' ? 'bg-light border-start border-4 border-warning' : 'bg-white'}`} 
+                                onClick={() => setPaymentMethod('card')}
+                                style={{ borderColor: paymentMethod === 'card' ? '#ff6000' : 'transparent' }}
+                            >
                                 <div className="d-flex justify-content-between align-items-center">
                                     <div className="d-flex align-items-center">
-                                        <i className="bi bi-credit-card fs-5 me-2 text-primary"></i>
+                                        <div className="bg-light p-2 rounded-3 me-3">
+                                            <i className="bi bi-credit-card fs-5 text-primary"></i>
+                                        </div>
                                         <div>
                                             <h6 className="fw-bold mb-0">Carte Bancaire</h6>
-                                            <small className="text-muted">Sécurisé par Stripe</small>
+                                            <small className="text-muted">Paiement 100% sécurisé via Stripe</small>
                                         </div>
                                     </div>
-                                    <Form.Check type="radio" checked={paymentMethod === 'card'} readOnly />
+                                    <div className={`rounded-circle border-2 d-flex align-items-center justify-content-center ${paymentMethod === 'card' ? 'border-warning' : 'border-secondary'}`} style={{ width: '22px', height: '22px', border: '2px solid' }}>
+                                        {paymentMethod === 'card' && <div className="bg-warning rounded-circle" style={{ width: '12px', height: '12px' }}></div>}
+                                    </div>
                                 </div>
                                 {paymentMethod === 'card' && (
-                                    <div className="mt-3 p-3 bg-white rounded-3 border focus-ring">
-                                        <CardElement options={{
-                                            style: {
-                                                base: {
-                                                    fontSize: '16px',
-                                                    color: '#424770',
-                                                    '::placeholder': { color: '#aab7c4' },
-                                                    iconColor: '#666e8e',
-                                                },
-                                                invalid: { color: '#9e2146' },
-                                            },
-                                            hidePostalCode: true, // We already collect postal code in shipping address
-                                        }} />
+                                    <div className="mt-3 p-3 bg-white rounded-4 border shadow-sm animate__animated animate__fadeIn">
+                                        <h6 className="fw-bold mb-3" style={{ fontSize: '0.85rem' }}>Informations de paiement</h6>
+                                        <div className="mb-3">
+                                            <label className="small text-muted mb-1 d-block">Numéro de carte</label>
+                                            <div className="p-2 border rounded-3 bg-light-focus transition-all">
+                                                <CardNumberElement options={{
+                                                    showIcon: true,
+                                                    placeholder: '•••• •••• •••• ••••',
+                                                    style: {
+                                                        base: {
+                                                            fontSize: '16px',
+                                                            color: '#32325d',
+                                                            '::placeholder': { color: '#aab7c4' },
+                                                        },
+                                                    },
+                                                }} />
+                                            </div>
+                                        </div>
+                                        <Row className="g-3">
+                                            <Col xs={7}>
+                                                <label className="small text-muted mb-1 d-block">Date d'expiration</label>
+                                                <div className="p-2 border rounded-3 bg-light-focus transition-all">
+                                                    <CardExpiryElement options={{
+                                                        placeholder: 'MM / AA',
+                                                        style: {
+                                                            base: {
+                                                                fontSize: '16px',
+                                                                color: '#32325d',
+                                                                '::placeholder': { color: '#aab7c4' },
+                                                            },
+                                                        },
+                                                    }} />
+                                                </div>
+                                            </Col>
+                                            <Col xs={5}>
+                                                <label className="small text-muted mb-1 d-block">CVC</label>
+                                                <div className="p-2 border rounded-3 bg-light-focus transition-all">
+                                                    <CardCvcElement options={{
+                                                        placeholder: '•••',
+                                                        style: {
+                                                            base: {
+                                                                fontSize: '16px',
+                                                                color: '#32325d',
+                                                                '::placeholder': { color: '#aab7c4' },
+                                                            },
+                                                        },
+                                                    }} />
+                                                </div>
+                                            </Col>
+                                        </Row>
                                     </div>
                                 )}
                             </div>
 
-                            {/* PayPal */}
-                            <div className={`p-2 rounded-4 border-2 mb-2 cursor-pointer ${paymentMethod === 'paypal' ? 'border-warning bg-light' : 'border-light'}`} onClick={() => setPaymentMethod('paypal')}>
+                            {/* FedaPay */}
+                            <div 
+                                className={`p-3 p-md-4 mb-0 cursor-pointer transition-all border-bottom ${paymentMethod === 'fedapay' ? 'bg-light border-start border-4 border-warning' : 'bg-white'}`} 
+                                onClick={() => setPaymentMethod('fedapay')}
+                                style={{ borderColor: paymentMethod === 'fedapay' ? '#ff6000' : 'transparent' }}
+                            >
                                 <div className="d-flex justify-content-between align-items-center">
                                     <div className="d-flex align-items-center">
-                                        <i className="bi bi-paypal fs-5 me-2 text-primary"></i>
-                                        <h6 className="fw-bold mb-0">PayPal</h6>
+                                        <div className="bg-light p-2 rounded-3 me-3">
+                                            <i className="bi bi-shield-check fs-5 text-success"></i>
+                                        </div>
+                                        <div>
+                                            <h6 className="fw-bold mb-0">FedaPay (Carte Visa/Mastercard/Mobile Money)</h6>
+                                            <small className="text-muted">Solution pour l'Afrique (Ecobank, UBA, Orabank...)</small>
+                                        </div>
                                     </div>
-                                    <Form.Check type="radio" checked={paymentMethod === 'paypal'} readOnly />
+                                    <div className={`rounded-circle border-2 d-flex align-items-center justify-content-center ${paymentMethod === 'fedapay' ? 'border-warning' : 'border-secondary'}`} style={{ width: '22px', height: '22px', border: '2px solid' }}>
+                                        {paymentMethod === 'fedapay' && <div className="bg-warning rounded-circle" style={{ width: '12px', height: '12px' }}></div>}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* PayPal */}
+                            <div 
+                                className={`p-3 p-md-4 mb-0 cursor-pointer transition-all ${paymentMethod === 'paypal' ? 'bg-light border-start border-4 border-warning' : 'bg-white'}`} 
+                                onClick={() => setPaymentMethod('paypal')}
+                                style={{ borderColor: paymentMethod === 'paypal' ? '#ff6000' : 'transparent' }}
+                            >
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <div className="d-flex align-items-center">
+                                        <div className="bg-light p-2 rounded-3 me-3">
+                                            <i className="bi bi-paypal fs-5 text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <h6 className="fw-bold mb-0">PayPal</h6>
+                                            <small className="text-muted">Utilisez votre compte PayPal</small>
+                                        </div>
+                                    </div>
+                                    <div className={`rounded-circle border-2 d-flex align-items-center justify-content-center ${paymentMethod === 'paypal' ? 'border-warning' : 'border-secondary'}`} style={{ width: '22px', height: '22px', border: '2px solid' }}>
+                                        {paymentMethod === 'paypal' && <div className="bg-warning rounded-circle" style={{ width: '12px', height: '12px' }}></div>}
+                                    </div>
                                 </div>
                             </div>
                         </Card.Body>
@@ -486,17 +699,14 @@ const CheckoutContent = () => {
                         <Card className="border-0 shadow-sm" style={{ borderRadius: '20px' }}>
                             <Card.Body className="p-4 bg-white">
                                 <h5 className="fw-bold mb-4">Résumé</h5>
-                                <div className="d-flex justify-content-between mb-2"><span>Sous-total</span><span>{(getCartTotal() - 1000).toLocaleString()} FCFA</span></div>
-                                <div className="d-flex justify-content-between mb-2"><span>Livraison</span><span>1 000 FCFA</span></div>
-                                <div className="d-flex justify-content-between mb-2 text-success">
-                                    <span><i className="bi bi-truck me-2"></i>Livraison estimée</span>
-                                    <span className="fw-bold">{estimatedDelivery}</span>
+                                <div className="d-flex justify-content-between mb-4 align-items-center">
+                                    <span className="h5 fw-bold mb-0">Somme Totale</span>
+                                    <span className="h4 text-warning fw-bold mb-0">{getCartTotal(true).toLocaleString()} FCFA</span>
                                 </div>
-                                <hr />
-                                <div className="d-flex justify-content-between mb-4"><strong className="fs-4">Total</strong><strong className="fs-4 text-warning">{getCartTotal().toLocaleString()} FCFA</strong></div>
 
                                 {paymentMethod === 'paypal' ? (
                                     <PayPalButtons
+                                        fundingSource="paypal"
                                         style={{ layout: "vertical" }}
                                         createOrder={(data, actions) => {
                                             if (!validateAddress()) return Promise.reject("Invalid Address");
@@ -531,7 +741,7 @@ const CheckoutContent = () => {
                                                 purchase_units: [{
                                                     amount: {
                                                         currency_code: "EUR",
-                                                        value: (getCartTotal() / 655.957).toFixed(2)
+                                                        value: (getCartTotal(true) / 655.957).toFixed(2)
                                                     },
                                                     shipping: {
                                                         name: { full_name: shippingData.fullName },
@@ -553,9 +763,9 @@ const CheckoutContent = () => {
                                                     id: `order_${Date.now()}`,
                                                     customerId: user.id, customerName: user.name, email: user.email,
                                                     phone: shippingData.phone, date: new Date().toISOString(),
-                                                    status: 'En attente', subtotal: getCartTotal() - 1000, shippingCost: 1000,
-                                                    total: getCartTotal(), paymentMethod: 'paypal',
-                                                    items: cartItems, shippingAddress: shippingData
+                                                    status: 'En attente', subtotal: getCartTotal(true) - 1000, shippingCost: 1000,
+                                                    total: getCartTotal(true), paymentMethod: 'paypal',
+                                                    items: getSelectedItems(), shippingAddress: shippingData
                                                 };
                                                 processOrderSuccess(orderData);
                                             });
@@ -572,38 +782,49 @@ const CheckoutContent = () => {
                 </Col>
             </Row>
 
-            {/* Delete Confirmation Modal */}
-            <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
-                <Modal.Header closeButton className="border-0 pb-0">
-                    <Modal.Title className="fs-5 fw-bold">Supprimer l'adresse</Modal.Title>
-                </Modal.Header>
-                <Modal.Body className="text-center py-4">
-                    <div className="mb-3 bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex align-items-center justify-content-center" style={{ width: '60px', height: '60px' }}>
-                        <i className="bi bi-trash3 fs-3"></i>
-                    </div>
-                    <p className="mb-0 text-muted">Êtes-vous sûr de vouloir supprimer cette adresse ?<br />Cette action est irréversible.</p>
-                </Modal.Body>
-                <Modal.Footer className="border-0 pt-0 justify-content-center pb-4">
-                    <Button variant="light" className="px-4 rounded-pill" onClick={() => setShowDeleteModal(false)}>
-                        Annuler
-                    </Button>
-                    <Button variant="danger" className="px-4 rounded-pill" onClick={confirmDelete}>
-                        Supprimer
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+            {/* Removed address delete modal as it's replaced by global confirm */}
         </Container>
     );
 };
 
 const Checkout = () => {
     return (
-        <PayPalScriptProvider options={{ "client-id": "test" }}>
-            <Elements stripe={stripePromise}>
-                <CheckoutContent />
-            </Elements>
-        </PayPalScriptProvider>
+        <>
+            <style>{`
+                .transition-all {
+                    transition: all 0.3s ease !important;
+                }
+                .cursor-pointer {
+                    cursor: pointer;
+                }
+                .bg-light-warning {
+                    background-color: #fffef0 !important;
+                }
+                /* Custom selection highlight */
+                .border-start-4 {
+                    border-left-width: 4px !important;
+                }
+            `}</style>
+            <PayPalScriptProvider options={{ "client-id": "test" }}>
+                <Elements stripe={stripePromise}>
+                    <CheckoutContent />
+                </Elements>
+            </PayPalScriptProvider>
+        </>
     );
-}
+};
 
 export default Checkout;
+
+
+// Auto-Injected fetch wrapper for JWT
+const authFetch = async (url, options = {}) => {
+    const token = localStorage.getItem('token');
+    if (token && url.includes('/api/')) {
+        options.headers = {
+            ...options.headers,
+            'Authorization': 'Bearer ' + token,
+        };
+    }
+    return fetch(url, options);
+};

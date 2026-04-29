@@ -2,11 +2,15 @@ import { Card, Button, Row, Col, Modal, Form, Alert } from 'react-bootstrap';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 import ProfileLayout from '../components/ProfileLayout';
+import { useLanguage } from '../context/LanguageContext';
 
 const SavedCards = () => {
     const { user } = useAuth();
+    const { showToast, confirm } = useToast();
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const [showModal, setShowModal] = useState(false);
     const [editingCard, setEditingCard] = useState(null);
 
@@ -30,14 +34,14 @@ const SavedCards = () => {
         return (
             <ProfileLayout>
                 <div className="mb-4">
-                    <h3 className="fw-bold">Cartes enregistrées</h3>
-                    <p className="text-muted">Gérez vos cartes bancaires</p>
+                    <h3 className="fw-bold">{t('saved_cards.title')}</h3>
+                    <p className="text-muted">{t('saved_cards.subtitle')}</p>
                 </div>
                 <Alert variant="info">
-                    <Alert.Heading>Connexion requise</Alert.Heading>
-                    <p>Vous devez être connecté pour gérer vos cartes.</p>
+                    <Alert.Heading>{t('saved_cards.login_required')}</Alert.Heading>
+                    <p>{t('saved_cards.login_msg')}</p>
                     <Button variant="primary" onClick={() => navigate('/login')}>
-                        Se connecter
+                        {t('saved_cards.login_btn')}
                     </Button>
                 </Alert>
             </ProfileLayout>
@@ -55,49 +59,43 @@ const SavedCards = () => {
             setFormData(card);
         } else {
             setEditingCard(null);
-            setFormData({
-                cardName: '',
-                cardNumber: '',
-                expiryMonth: '',
-                expiryYear: '',
-                cvv: ''
-            });
+            setFormData({ cardName: '', cardNumber: '', expiryMonth: '', expiryYear: '', cvv: '' });
         }
         setShowModal(true);
     };
 
     const handleSaveCard = () => {
         if (!formData.cardName || !formData.cardNumber || !formData.expiryMonth || !formData.expiryYear) {
-            alert('Veuillez remplir tous les champs obligatoires');
+            showToast(t('saved_cards.fill_required'), 'warning');
             return;
         }
-
-        // Validate card number (simple check)
         if (formData.cardNumber.replace(/\s/g, '').length !== 16) {
-            alert('Le numéro de carte doit contenir 16 chiffres');
+            showToast(t('saved_cards.invalid_number'), 'warning');
             return;
         }
 
         let newCards;
         if (editingCard) {
-            // Update existing card
-            newCards = cards.map(c =>
-                c.id === editingCard.id ? { ...formData, id: editingCard.id } : c
-            );
+            newCards = cards.map(c => c.id === editingCard.id ? { ...formData, id: editingCard.id } : c);
         } else {
-            // Add new card
-            const newCard = { ...formData, id: Date.now() };
-            newCards = [...cards, newCard];
+            newCards = [...cards, { ...formData, id: Date.now() }];
         }
 
         saveCards(newCards);
+        showToast(editingCard ? t('saved_cards.updated') : t('saved_cards.added'), 'success');
         setShowModal(false);
     };
 
-    const handleDeleteCard = (id) => {
-        if (window.confirm('Êtes-vous sûr de vouloir supprimer cette carte ?')) {
-            const newCards = cards.filter(c => c.id !== id);
-            saveCards(newCards);
+    const handleDeleteCard = async (id) => {
+        const ok = await confirm({
+            title: t('saved_cards.delete_title'),
+            message: t('saved_cards.delete_msg'),
+            variant: 'danger',
+            confirmText: t('common.delete')
+        });
+        if (ok) {
+            saveCards(cards.filter(c => c.id !== id));
+            showToast(t('saved_cards.deleted'), 'success');
         }
     };
 
@@ -111,7 +109,7 @@ const SavedCards = () => {
         if (cleaned.startsWith('4')) return 'Visa';
         if (cleaned.startsWith('5')) return 'Mastercard';
         if (cleaned.startsWith('3')) return 'American Express';
-        return 'Carte bancaire';
+        return t('saved_cards.generic_card');
     };
 
     const formatCardNumber = (value) => {
@@ -124,22 +122,22 @@ const SavedCards = () => {
         <ProfileLayout>
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h3 className="fw-bold">Cartes enregistrées</h3>
-                    <p className="text-muted mb-0">Gérez vos moyens de paiement</p>
+                    <h3 className="fw-bold">{t('saved_cards.title')}</h3>
+                    <p className="text-muted mb-0">{t('saved_cards.subtitle')}</p>
                 </div>
                 <Button variant="warning" className="text-white fw-bold" onClick={() => handleOpenModal()}>
                     <i className="bi bi-plus-lg me-2"></i>
-                    Nouvelle carte
+                    {t('saved_cards.new_card')}
                 </Button>
             </div>
 
             {cards.length === 0 ? (
                 <div className="text-center py-5">
                     <i className="bi bi-credit-card" style={{ fontSize: '5rem', color: '#ddd' }}></i>
-                    <h3 className="mt-4 text-muted">Aucune carte enregistrée</h3>
-                    <p className="text-muted mb-4">Ajoutez une carte pour faciliter vos paiements</p>
+                    <h3 className="mt-4 text-muted">{t('saved_cards.no_cards')}</h3>
+                    <p className="text-muted mb-4">{t('saved_cards.no_cards_msg')}</p>
                     <Button variant="warning" className="text-white fw-bold" onClick={() => handleOpenModal()}>
-                        Ajouter une carte
+                        {t('saved_cards.add_card')}
                     </Button>
                 </div>
             ) : (
@@ -157,20 +155,10 @@ const SavedCards = () => {
                                             <h6 className="fw-bold mb-0">{card.cardName}</h6>
                                         </div>
                                         <div>
-                                            <Button
-                                                variant="link"
-                                                size="sm"
-                                                className="p-1 text-white"
-                                                onClick={() => handleOpenModal(card)}
-                                            >
+                                            <Button variant="link" size="sm" className="p-1 text-white" onClick={() => handleOpenModal(card)}>
                                                 <i className="bi bi-pencil-fill"></i>
                                             </Button>
-                                            <Button
-                                                variant="link"
-                                                size="sm"
-                                                className="p-1 text-white"
-                                                onClick={() => handleDeleteCard(card.id)}
-                                            >
+                                            <Button variant="link" size="sm" className="p-1 text-white" onClick={() => handleDeleteCard(card.id)}>
                                                 <i className="bi bi-trash-fill"></i>
                                             </Button>
                                         </div>
@@ -183,7 +171,7 @@ const SavedCards = () => {
                                     </p>
                                     <div className="d-flex justify-content-between">
                                         <div>
-                                            <small className="opacity-75">Expire le</small>
+                                            <small className="opacity-75">{t('saved_cards.expires')}</small>
                                             <p className="mb-0 fw-bold">{card.expiryMonth}/{card.expiryYear}</p>
                                         </div>
                                     </div>
@@ -197,12 +185,12 @@ const SavedCards = () => {
             {/* Add/Edit Card Modal */}
             <Modal show={showModal} onHide={() => setShowModal(false)} centered>
                 <Modal.Header closeButton>
-                    <Modal.Title>{editingCard ? 'Modifier la carte' : 'Nouvelle carte'}</Modal.Title>
+                    <Modal.Title>{editingCard ? t('saved_cards.edit_modal_title') : t('saved_cards.add_modal_title')}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <Form>
                         <Form.Group className="mb-3">
-                            <Form.Label>Nom sur la carte *</Form.Label>
+                            <Form.Label>{t('saved_cards.field_name')} *</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="Ex: JEAN DUPONT"
@@ -212,7 +200,7 @@ const SavedCards = () => {
                         </Form.Group>
 
                         <Form.Group className="mb-3">
-                            <Form.Label>Numéro de carte *</Form.Label>
+                            <Form.Label>{t('saved_cards.field_number')} *</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="1234 5678 9012 3456"
@@ -230,11 +218,8 @@ const SavedCards = () => {
                         <Row>
                             <Col xs={4}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Mois *</Form.Label>
-                                    <Form.Select
-                                        value={formData.expiryMonth}
-                                        onChange={e => setFormData({ ...formData, expiryMonth: e.target.value })}
-                                    >
+                                    <Form.Label>{t('saved_cards.field_month')} *</Form.Label>
+                                    <Form.Select value={formData.expiryMonth} onChange={e => setFormData({ ...formData, expiryMonth: e.target.value })}>
                                         <option value="">MM</option>
                                         {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
                                             <option key={month} value={month.toString().padStart(2, '0')}>
@@ -246,11 +231,8 @@ const SavedCards = () => {
                             </Col>
                             <Col xs={4}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Année *</Form.Label>
-                                    <Form.Select
-                                        value={formData.expiryYear}
-                                        onChange={e => setFormData({ ...formData, expiryYear: e.target.value })}
-                                    >
+                                    <Form.Label>{t('saved_cards.field_year')} *</Form.Label>
+                                    <Form.Select value={formData.expiryYear} onChange={e => setFormData({ ...formData, expiryYear: e.target.value })}>
                                         <option value="">AA</option>
                                         {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i).map(year => (
                                             <option key={year} value={year.toString().slice(-2)}>
@@ -270,9 +252,7 @@ const SavedCards = () => {
                                         value={formData.cvv}
                                         onChange={e => {
                                             const value = e.target.value;
-                                            if (/^\d*$/.test(value)) {
-                                                setFormData({ ...formData, cvv: value });
-                                            }
+                                            if (/^\d*$/.test(value)) setFormData({ ...formData, cvv: value });
                                         }}
                                     />
                                 </Form.Group>
@@ -281,16 +261,16 @@ const SavedCards = () => {
 
                         <Alert variant="info" className="small">
                             <i className="bi bi-shield-lock me-2"></i>
-                            Vos informations sont sécurisées et cryptées
+                            {t('saved_cards.security_msg')}
                         </Alert>
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setShowModal(false)}>
-                        Annuler
+                        {t('common.cancel')}
                     </Button>
                     <Button variant="warning" className="text-white fw-bold" onClick={handleSaveCard}>
-                        Enregistrer
+                        {t('common.save')}
                     </Button>
                 </Modal.Footer>
             </Modal>

@@ -1,0 +1,19 @@
+{
+  "java.project.importOnFirstTimeStartup": "disabled",
+  "java.server.launchMode": "LightWeight",
+  "java.project.resourceFilters": [
+    "node_modules",
+    "android",
+    "ios",
+    ".idea"
+  ],
+  "java.import.exclusions": [
+    "**/node_modules/**",
+    "**/android/**",
+    "**/ios/**"
+  ],
+  "files.watcherExclude": {
+    "**/android/**": true,
+    "**/ios/**": true
+  }
+}

@@ -3,6 +3,8 @@ import { Table, Button, Modal, Form, Badge, Row, Col, InputGroup } from 'react-b
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Fonction pour générer un ID unique (identique à AuthContext)
 const generateUserId = () => {
@@ -17,7 +19,9 @@ const generateUserId = () => {
 const AdminUsers = () => {
     const { users, setUsers, adminUpdateUser, adminDeleteUser, adminAddUser } = useData();
     const { user } = useAuth();
+    const { showToast, confirm } = useToast();
     const navigate = useNavigate();
+    const { t } = useLanguage();
 
     if (user?.role === 'expediteur' || user?.role === 'manager') {
         navigate('/admin');
@@ -69,7 +73,7 @@ const AdminUsers = () => {
     // Save user (create or update)
     const handleSave = async () => {
         if (!formData.name || !formData.email) {
-            alert('Veuillez remplir tous les champs obligatoires');
+            showToast('Veuillez remplir tous les champs obligatoires', 'warning');
             return;
         }
 
@@ -83,20 +87,20 @@ const AdminUsers = () => {
             });
 
             if (success) {
-                alert('Utilisateur modifié avec succès !');
+                showToast('Utilisateur modifié avec succès !', 'success');
             } else {
-                alert('Erreur lors de la modification de l\'utilisateur');
+                showToast('Erreur lors de la modification.', 'danger');
             }
         } else {
             // Create new user
             if (!formData.password) {
-                alert('Le mot de passe est obligatoire pour un nouveau compte');
+                showToast('Le mot de passe est obligatoire.', 'warning');
                 return;
             }
 
             // Check if email already exists (case-insensitive)
             if (users.some(u => u.email.toLowerCase() === formData.email.toLowerCase())) {
-                alert('Cet email est déjà utilisé');
+                showToast('Cet email est déjà utilisé', 'warning');
                 return;
             }
 
@@ -112,9 +116,9 @@ const AdminUsers = () => {
 
             const success = await adminAddUser(newUser);
             if (success) {
-                alert('Utilisateur créé avec succès !');
+                showToast('Utilisateur créé avec succès !', 'success');
             } else {
-                alert('Erreur lors de la création de l\'utilisateur');
+                showToast('Erreur lors de la création.', 'danger');
             }
         }
 
@@ -124,115 +128,166 @@ const AdminUsers = () => {
     // Delete user
     const handleDelete = async (user) => {
         if (user.email.toLowerCase() === 'trymyday235@gmail.com') {
-            alert('Impossible de supprimer le compte administrateur principal !');
+            showToast('Impossible de supprimer le compte administrateur principal !', 'danger');
             return;
         }
 
-        if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${user.name || user.email} ?`)) {
+        const ok = await confirm({
+            title: 'Supprimer l\'utilisateur',
+            message: `Êtes-vous sûr de vouloir supprimer ${user.name || user.email} ?`,
+            variant: 'danger',
+            confirmText: 'Supprimer'
+        });
+
+        if (ok) {
             const success = await adminDeleteUser(user.email);
             if (success) {
-                alert('Utilisateur supprimé avec succès !');
+                showToast('Utilisateur supprimé avec succès !', 'success');
             } else {
-                alert('Erreur lors de la suppression de l\'utilisateur');
+                showToast('Erreur lors de la suppression.', 'danger');
             }
         }
     };
 
     return (
         <div>
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <h4 className="mb-0">Gestion des Clients</h4>
-                <Button variant="primary" onClick={handleCreate}>
-                    <i className="bi bi-plus-circle me-2"></i>
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                <h4 className="fw-bold mb-0">{t('admin_users.title')}</h4>
+                <Button variant="primary" onClick={handleCreate} className="fw-bold px-4 py-2 rounded-pill shadow-sm">
+                    <i className="bi bi-person-plus-fill me-2"></i>
                     Nouveau Client
                 </Button>
             </div>
 
             {/* Search and Filter */}
-            <Row className="mb-4">
-                <Col md={6}>
-                    <InputGroup>
-                        <InputGroup.Text>
-                            <i className="bi bi-search"></i>
-                        </InputGroup.Text>
-                        <Form.Control
-                            placeholder="Rechercher par nom ou email..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </InputGroup>
-                </Col>
-                <Col md={3}>
-                    <Form.Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-                        <option value="all">Tous les rôles</option>
-                        <option value="client">Clients</option>
-                        <option value="admin">Administrateurs</option>
-                        <option value="manager">Managers</option>
-                        <option value="expediteur">Expéditeurs</option>
-                    </Form.Select>
-                </Col>
-            </Row>
+            <div className="bg-white p-3 rounded-4 shadow-sm border mb-4">
+                <Row className="g-2 g-md-3">
+                    <Col xs={12} md={7}>
+                        <InputGroup className="shadow-none border rounded overflow-hidden">
+                            <InputGroup.Text className="bg-white border-0 pe-0">
+                                <i className="bi bi-search text-muted opacity-50"></i>
+                            </InputGroup.Text>
+                            <Form.Control
+                                placeholder="Nom ou email..."
+                                className="border-0 shadow-none py-2"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </InputGroup>
+                    </Col>
+                    <Col xs={12} md={5}>
+                        <Form.Select className="shadow-none border rounded py-2" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+                            <option value="all">Tous les rôles</option>
+                            <option value="client">{t('admin_users.user')}</option>
+                            <option value="admin">{t('admin_users.admin')}</option>
+                            <option value="manager">{t('admin_users.manager')}</option>
+                            <option value="expediteur">{t('admin_users.shipper')}</option>
+                        </Form.Select>
+                    </Col>
+                </Row>
+            </div>
 
             {/* Users Table */}
             {filteredUsers.length === 0 ? (
-                <div className="text-center text-muted py-5">
-                    <i className="bi bi-people" style={{ fontSize: '3rem' }}></i>
-                    <p className="mt-3">Aucun utilisateur trouvé</p>
+                <div className="text-center text-muted py-5 bg-white border rounded-4 shadow-sm">
+                    <i className="bi bi-people opacity-20" style={{ fontSize: '3rem' }}></i>
+                    <p className="mt-3 fw-medium">Aucun utilisateur trouvé</p>
                 </div>
             ) : (
-                <Table hover responsive>
-                    <thead className="table-light">
-                        <tr>
-                            <th>ID</th>
-                            <th>Nom</th>
-                            <th>Email</th>
-                            <th>Rôle</th>
-                            <th>Inscrit le</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredUsers.map((user, index) => (
-                            <tr key={user.email}>
-                                <td>{user.id || index + 1}</td>
-                                <td>{user.name}</td>
-                                <td>{user.email}</td>
-                                <td>
-                                    <Badge bg={user.role === 'admin' ? 'danger' : 'info'}>
-                                        {user.role}
-                                    </Badge>
-                                </td>
-                                <td>
-                                    {user.joined ? (
-                                        new Date(user.joined).toLocaleDateString('fr-FR', {
-                                            day: '2-digit',
-                                            month: '2-digit',
-                                            year: 'numeric'
-                                        })
-                                    ) : 'Date inconnue'}
-                                </td>
-                                <td>
-                                    <Button
-                                        variant="outline-primary"
-                                        size="sm"
-                                        className="me-2"
-                                        onClick={() => handleEdit(user)}
-                                    >
-                                        <i className="bi bi-pencil"></i>
-                                    </Button>
-                                    <Button
-                                        variant="outline-danger"
-                                        size="sm"
-                                        onClick={() => handleDelete(user)}
-                                    >
-                                        <i className="bi bi-trash"></i>
-                                    </Button>
-                                </td>
+                <div className="bg-white border rounded-4 shadow-sm overflow-hidden tech-user-table-container">
+                    <Table hover responsive className="mb-0 align-middle tech-user-table">
+                        <thead className="bg-light d-none d-md-table-header-group">
+                            <tr>
+                                <th className="ps-4 py-3">ID</th>
+                                <th className="py-3">Nom</th>
+                                <th className="py-3">Email</th>
+                                <th className="py-3">{t('admin_users.role')}</th>
+                                <th className="py-3">{t('admin_users.join_date')}</th>
+                                <th className="text-end pe-4 py-3">Actions</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </Table>
+                        </thead>
+                        <tbody>
+                            {filteredUsers.map((user, index) => (
+                                <tr key={user.email} className="tech-user-row">
+                                    <td className="ps-3 ps-md-4 py-3 user-id-cell">
+                                        <div className="text-muted small">#{user.id || index + 1}</div>
+                                    </td>
+                                    <td className="py-3 user-name-cell">
+                                        <div className="fw-bold text-dark">{user.name}</div>
+                                    </td>
+                                    <td className="py-3 user-email-cell">
+                                        <div className="text-muted small text-truncate" style={{ maxWidth: '200px' }}>{user.email}</div>
+                                    </td>
+                                    <td className="py-3 user-role-cell">
+                                        <Badge bg={user.role === 'admin' ? 'danger' : user.role === 'manager' ? 'warning' : 'info'} className="px-2 py-1 rounded-pill" style={{ fontSize: '0.65rem', textTransform: 'uppercase' }}>
+                                            {user.role}
+                                        </Badge>
+                                    </td>
+                                    <td className="d-none d-lg-table-cell py-3">
+                                        <div className="text-muted small">
+                                            {user.joined ? (
+                                                new Date(user.joined).toLocaleDateString('fr-FR', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    year: 'numeric'
+                                                })
+                                            ) : 'Date inconnue'}
+                                        </div>
+                                    </td>
+                                    <td className="text-end pe-3 pe-md-4 py-3 user-actions-cell">
+                                        <div className="d-flex justify-content-end gap-1">
+                                            <Button
+                                                variant="outline-primary"
+                                                className="border-0 p-2 rounded-circle shadow-none"
+                                                onClick={() => handleEdit(user)}
+                                                title="Modifier"
+                                            >
+                                                <i className="bi bi-pencil-fill"></i>
+                                            </Button>
+                                            <Button
+                                                variant="outline-danger"
+                                                className="border-0 p-2 rounded-circle shadow-none"
+                                                onClick={() => handleDelete(user)}
+                                                title="Supprimer"
+                                            >
+                                                <i className="bi bi-trash-fill"></i>
+                                            </Button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                </div>
             )}
+
+            <style>{`
+                .tech-user-row { transition: all 0.2s ease; }
+                .tech-user-row:hover { background-color: #fcfcfc !important; }
+                
+                @media (max-width: 767.98px) {
+                    .tech-user-table-container { border: none !important; box-shadow: none !important; background: transparent !important; }
+                    .tech-user-table thead { display: none; }
+                    .tech-user-table tbody tr { 
+                        display: flex !important; 
+                        flex-wrap: wrap; 
+                        background: #fff; 
+                        margin-bottom: 12px; 
+                        border-radius: 12px; 
+                        padding: 15px; 
+                        border: 1px solid #eee; 
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
+                        position: relative;
+                        align-items: center;
+                    }
+                    .tech-user-table td { border: none !important; padding: 0 !important; }
+                    .user-id-cell { width: 100%; margin-bottom: 4px; }
+                    .user-name-cell { width: auto; flex-grow: 1; }
+                    .user-role-cell { width: auto; margin-right: 15px; }
+                    .user-email-cell { width: 100%; margin-top: 8px; border-top: 1px dashed #eee; padding-top: 8px !important; }
+                    .user-actions-cell { position: absolute; top: 15px; right: 10px; width: auto !important; }
+                }
+            `}</style>
 
             {/* Create/Edit Modal */}
             <Modal show={showModal} onHide={() => setShowModal(false)}>
@@ -282,14 +337,14 @@ const AdminUsers = () => {
                         </Form.Group>
 
                         <Form.Group className="mb-3">
-                            <Form.Label>Rôle *</Form.Label>
+                            <Form.Label>{t('admin_users.role')} *</Form.Label>
                             <Form.Select
                                 value={formData.role}
                                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                             >
-                                <option value="client">Client</option>
-                                <option value="manager">Manager</option>
-                                <option value="expediteur">Expéditeur</option>
+                                <option value="client">{t('admin_users.user')}</option>
+                                <option value="manager">{t('admin_users.manager')}</option>
+                                <option value="expediteur">{t('admin_users.shipper')}</option>
                             </Form.Select>
                         </Form.Group>
                     </Form>

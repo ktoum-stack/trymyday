@@ -1,343 +1,372 @@
 {
-    "products": [
+  "products": [
+    {
+      "id": "10000001",
+      "name": "Robe Bohème Chic",
+      "brand": "Zara",
+      "price": 5000,
+      "stock": 12,
+      "category": "Femme",
+      "subcategory": "Robes",
+      "description": "Robe longue style bohème avec motifs floraux. Tissu fluide et léger.",
+      "image": "https://images.unsplash.com/photo-1612336307429-8a898d10e223?auto=format&fit=crop&w=800&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1612336307429-8a898d10e223?auto=format&fit=crop&w=800&q=80"
+      ],
+      "colors": [
         {
-            "id": "10000001",
-            "name": "Robe Bohème Chic",
-            "brand": "Zara",
-            "price": 58000,
-            "stock": 12,
-            "category": "Femme",
-            "subcategory": "Robes",
-            "description": "Robe longue style bohème avec motifs floraux. Tissu fluide et léger.",
-            "image": "https://images.unsplash.com/photo-1612336307429-8a898d10e223?auto=format&fit=crop&w=800&q=80",
-            "images": [
-                "https://images.unsplash.com/photo-1612336307429-8a898d10e223?auto=format&fit=crop&w=800&q=80",
-                "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=800&q=80"
-            ],
-            "colors": [
-                {
-                    "name": "Floral",
-                    "hex": "#d63384",
-                    "image": "https://images.unsplash.com/photo-1612336307429-8a898d10e223?auto=format&fit=crop&w=800&q=80"
-                },
-                {
-                    "name": "Blanc",
-                    "hex": "#f8f9fa",
-                    "image": "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=800&q=80"
-                },
-                {
-                    "name": "Rouge",
-                    "hex": "#dc3545",
-                    "image": "https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=800&q=80"
-                }
-            ],
-            "attributes": [
-                {
-                    "label": "Matière",
-                    "value": "100% Coton Voile"
-                },
-                {
-                    "label": "Coupe",
-                    "value": "Évasée / Bohème"
-                },
-                {
-                    "label": "Doublure",
-                    "value": "Oui (Coton)"
-                },
-                {
-                    "label": "Motif",
-                    "value": "Floral Imprimé"
-                },
-                {
-                    "label": "Longueur",
-                    "value": "Maxi (145cm)"
-                }
-            ],
-            "availableSizes": [
-                "XS",
-                "S",
-                "M",
-                "L",
-                "XL"
-            ]
+          "name": "Rouge",
+          "hex": "#dd2c2c",
+          "images": [
+            "https://images.unsplash.com/photo-1612336307429-8a898d10e223?auto=format&fit=crop&w=800&q=80"
+          ]
         },
         {
-            "id": "10000002",
-            "name": "Veste en Jean Vintage",
-            "brand": "Mango",
-            "price": 42000,
-            "stock": 20,
-            "category": "Femme",
-            "subcategory": "Vestes",
-            "description": "L'incontournable veste en jean, coupe oversize pour un look décontracté.",
-            "image": "https://images.unsplash.com/photo-1544653879-183e8fa770c8?auto=format&fit=crop&w=800&q=80",
-            "images": [
-                "https://images.unsplash.com/photo-1544653879-183e8fa770c8?auto=format&fit=crop&w=800&q=80",
-                "https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&w=800&q=80"
-            ]
+          "name": "Noire",
+          "hex": "#000000",
+          "images": [
+            "https://tse1.mm.bing.net/th/id/OIP.__s4NvpAl9TSHF1i6Gu_3QHaLH?rs=1&pid=ImgDetMain&o=7&rm=3"
+          ]
         },
         {
-            "id": "10000003",
-            "name": "Sac Cabas Cuir Noir",
-            "price": 95000,
-            "stock": 8,
-            "category": "Femme",
-            "subcategory": "Sacs",
-            "description": "Grand sac cabas en cuir grainé. Idéal pour le travail ou le shopping.",
-            "image": "https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&w=800&q=80",
-            "images": [
-                "https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&w=800&q=80",
-                "https://images.unsplash.com/photo-1590874103328-3abab86f2191?auto=format&fit=crop&w=800&q=80"
-            ]
-        },
-        {
-            "id": "10000011",
-            "name": "Manteau Long Laine",
-            "brand": "Defacto",
-            "price": 125000,
-            "stock": 10,
-            "category": "Homme",
-            "subcategory": "Costumes",
-            "description": "Manteau élégant en laine mélangée. Coupe droite et col classique.",
-            "image": "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?auto=format&fit=crop&w=800&q=80",
-            "images": [
-                "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?auto=format&fit=crop&w=800&q=80",
-                "https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&w=800&q=80"
-            ],
-            "colors": [
-                {
-                    "name": "Bleu Marine",
-                    "hex": "#0a192f",
-                    "image": "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?auto=format&fit=crop&w=800&q=80"
-                },
-                {
-                    "name": "Noir",
-                    "hex": "#000000",
-                    "image": "https://images.unsplash.com/photo-1507679796233-874256eb9a14?auto=format&fit=crop&w=800&q=80"
-                },
-                {
-                    "name": "Gris",
-                    "hex": "#6c757d",
-                    "image": "https://images.unsplash.com/photo-1594938298603-c8148c47e356?auto=format&fit=crop&w=800&q=80"
-                }
-            ],
-            "attributes": [
-                {
-                    "label": "Matière",
-                    "value": "80% Laine, 20% Cachemire"
-                },
-                {
-                    "label": "Coupe",
-                    "value": "Ajustée / Slim Fit"
-                },
-                {
-                    "label": "Doublure",
-                    "value": "Satin de soie"
-                },
-                {
-                    "label": "Fermeture",
-                    "value": "Boutons croisés"
-                },
-                {
-                    "label": "Entretien",
-                    "value": "Nettoyage à sec"
-                }
-            ],
-            "availableSizes": [
-                "S",
-                "M",
-                "L",
-                "XL",
-                "XXL"
-            ]
-        },
-        {
-            "id": "10000012",
-            "name": "Polo Piqué Premium",
-            "brand": "LC Waikiki",
-            "price": 28000,
-            "stock": 35,
-            "category": "Homme",
-            "subcategory": "T-shirts",
-            "description": "Polo en coton piqué de qualité supérieure. Disponible en plusieurs coloris.",
-            "image": "https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?auto=format&fit=crop&w=800&q=80",
-            "images": [
-                "https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?auto=format&fit=crop&w=800&q=80",
-                "https://images.unsplash.com/photo-1626557981101-aae6f84aa6ff?auto=format&fit=crop&w=800&q=80"
-            ]
-        },
-        {
-            "id": "10000013",
-            "name": "Montre Chronographe",
-            "price": 140000,
-            "stock": 15,
-            "category": "Homme",
-            "subcategory": "Accessoires",
-            "description": "Montre chronographe avec bracelet en acier. Précision et style.",
-            "image": "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=800&q=80",
-            "images": [
-                "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=800&q=80",
-                "https://images.unsplash.com/photo-1619134778706-7015533a6150?auto=format&fit=crop&w=800&q=80"
-            ]
-        },
-        {
-            "id": "10000021",
-            "name": "Salopette en Jean",
-            "price": 22000,
-            "stock": 18,
-            "category": "Enfant",
-            "subcategory": "Garçon",
-            "description": "Salopette robuste et confortable pour jouer toute la journée.",
-            "image": "https://images.unsplash.com/photo-1519457431-44ccd64a579b?auto=format&fit=crop&w=800&q=80",
-            "images": [
-                "https://images.unsplash.com/photo-1519457431-44ccd64a579b?auto=format&fit=crop&w=800&q=80",
-                "https://images.unsplash.com/photo-1519238263496-6362d74c1123?auto=format&fit=crop&w=800&q=80"
-            ]
-        },
-        {
-            "id": "10000022",
-            "name": "Chaussures Scratch",
-            "brand": "Flo",
-            "price": 25000,
-            "stock": 25,
-            "category": "Enfant",
-            "subcategory": "Chaussures",
-            "description": "Baskets à scratch faciles à enfiler. Semelle antidérapante.",
-            "image": "https://images.unsplash.com/photo-1514989940723-e8875ea6ab7d?auto=format&fit=crop&w=800&q=80",
-            "images": [
-                "https://images.unsplash.com/photo-1514989940723-e8875ea6ab7d?auto=format&fit=crop&w=800&q=80"
-            ]
-        },
-        {
-            "id": "10000031",
-            "name": "Ordinateur Ultra-Fin",
-            "brand": "Apple",
-            "price": 580000,
-            "stock": 5,
-            "category": "Électronique",
-            "subcategory": "Informatique",
-            "description": "Performance et légèreté. Processeur dernière génération pour les créatifs.",
-            "image": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=800&q=80",
-            "images": [
-                "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=800&q=80",
-                "https://images.unsplash.com/photo-1531297461136-82lw8?auto=format&fit=crop&w=800&q=80"
-            ],
-            "colors": [
-                {
-                    "name": "Argent",
-                    "hex": "#e0e0e0",
-                    "image": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=800&q=80"
-                },
-                {
-                    "name": "Gris Sidéral",
-                    "hex": "#4a4a4a",
-                    "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80"
-                }
-            ],
-            "attributes": [
-                {
-                    "label": "Processeur",
-                    "value": "M3 Pro 12-core"
-                },
-                {
-                    "label": "RAM",
-                    "value": "18 GB LPDDR5"
-                },
-                {
-                    "label": "Stockage",
-                    "value": "512 GB SSD NVMe"
-                },
-                {
-                    "label": "Écran",
-                    "value": "14.2\" Liquid Retina XDR"
-                },
-                {
-                    "label": "Batterie",
-                    "value": "70Wh (18h autonomie)"
-                },
-                {
-                    "label": "Système",
-                    "value": "macOS Sonoma"
-                }
-            ]
-        },
-        {
-            "id": "10000032",
-            "name": "Enceinte Bluetooth",
-            "brand": "Samsung",
-            "price": 48000,
-            "stock": 30,
-            "category": "Électronique",
-            "subcategory": "Audio",
-            "description": "Son à 360° et étanche. Parfaite pour la plage ou la piscine.",
-            "image": "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=800&q=80",
-            "images": [
-                "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=800&q=80",
-                "https://images.unsplash.com/photo-1589256469067-ea99122bbdc4?auto=format&fit=crop&w=800&q=80"
-            ],
-            "attributes": [
-                {
-                    "label": "Processeur",
-                    "value": "DSP Audio Quad-core"
-                },
-                {
-                    "label": "Batterie",
-                    "value": "12h Autonomie"
-                },
-                {
-                    "label": "Système",
-                    "value": "Bluetooth 5.2"
-                },
-                {
-                    "label": "Étanchéité",
-                    "value": "IPX7 (Piscine OK)"
-                }
-            ]
-        },
-        {
-            "id": "10000041",
-            "name": "Vase Céramique Artisanal",
-            "price": 28000,
-            "stock": 12,
-            "category": "Maison & Meuble",
-            "subcategory": "Décoration",
-            "description": "Vase fait main, chaque pièce est unique. Idéal pour les fleurs séchées.",
-            "image": "https://images.unsplash.com/photo-1581783342308-f792ca11df53?auto=format&fit=crop&w=800&q=80",
-            "images": [
-                "https://images.unsplash.com/photo-1581783342308-f792ca11df53?auto=format&fit=crop&w=800&q=80",
-                "https://images.unsplash.com/photo-1615486511484-92e004d4022c?auto=format&fit=crop&w=800&q=80"
-            ],
-            "attributes": [
-                {
-                    "label": "Matière",
-                    "value": "Céramique émaillée"
-                },
-                {
-                    "label": "Dimensions",
-                    "value": "25cm x 15cm"
-                },
-                {
-                    "label": "Poids",
-                    "value": "1.2 kg"
-                },
-                {
-                    "label": "Fabrication",
-                    "value": "Artisanal / Main"
-                }
-            ]
-        },
-        {
-            "id": "10000042",
-            "name": "Set de Draps Lin",
-            "price": 75000,
-            "stock": 15,
-            "category": "Maison & Meuble",
-            "subcategory": "Linge de maison",
-            "description": "Draps en lin lavé pour une douceur incomparable. Régule la température.",
-            "image": "https://images.unsplash.com/photo-1578898950587-827cb6b98687?auto=format&fit=crop&w=800&q=80",
-            "images": [
-                "https://images.unsplash.com/photo-1578898950587-827cb6b98687?auto=format&fit=crop&w=800&q=80"
-            ]
+          "name": "Blanche",
+          "hex": "#fdfcfc",
+          "images": [
+            "https://robesbohemes.com/wp-content/uploads/2022/06/robe-longue-blanche-style-mariage-02.jpg",
+            "https://tse3.mm.bing.net/th/id/OIP.SK39pnEsK84OdwikvbuU6AHaJQ?pid=ImgDet&w=474&h=592&rs=1&o=7&rm=3",
+            "https://robesbohemes.com/wp-content/uploads/2023/01/Robelongueblanchestylemariage6.jpg"
+          ]
         }
-    ]
+      ],
+      "attributes": [
+        {
+          "label": "Matière",
+          "value": "100% Coton Voile"
+        },
+        {
+          "label": "Coupe",
+          "value": "Évasée / Bohème"
+        },
+        {
+          "label": "Doublure",
+          "value": "Oui (Coton)"
+        },
+        {
+          "label": "Motif",
+          "value": "Floral Imprimé"
+        },
+        {
+          "label": "Longueur",
+          "value": "Maxi (145cm)"
+        }
+      ],
+      "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "collection": "",
+      "tags": "",
+      "sku": "",
+      "barcode": "KP06014240661",
+      "flashSale": {
+        "discount": 5,
+        "startDate": "2026-03-12T02:43",
+        "endDate": "2026-03-15T02:43"
+      }
+    },
+    {
+      "id": "10000002",
+      "name": "Veste en Jean Vintage",
+      "brand": "Mango",
+      "price": 42000,
+      "stock": 20,
+      "category": "Femme",
+      "subcategory": "Vestes",
+      "description": "L'incontournable veste en jean, coupe oversize pour un look décontracté.",
+      "image": "https://images.unsplash.com/photo-1544653879-183e8fa770c8?auto=format&fit=crop&w=800&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1544653879-183e8fa770c8?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1516762689617-e1cffcef479d?auto=format&fit=crop&w=800&q=80"
+      ],
+      "collection": "",
+      "tags": "",
+      "sku": "",
+      "attributes": [],
+      "availableSizes": [],
+      "barcode": "8695876203703",
+      "isNew": false,
+      "isGift": false,
+      "isCollection": false,
+      "isFavorite": false,
+      "isBestSeller": false,
+      "colors": [],
+      "flashSale": null
+    },
+    {
+      "id": "10000003",
+      "name": "Sac Cabas Cuir Noir",
+      "price": 95000,
+      "stock": 8,
+      "category": "Femme",
+      "subcategory": "Sacs",
+      "description": "Grand sac cabas en cuir grainé. Idéal pour le travail ou le shopping.",
+      "image": "https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&w=800&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1591561954557-26941169b49e?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1590874103328-3abab86f2191?auto=format&fit=crop&w=800&q=80"
+      ]
+    },
+    {
+      "id": "10000011",
+      "name": "Manteau Long Laine",
+      "brand": "Defacto",
+      "price": 125000,
+      "stock": 10,
+      "category": "Homme",
+      "subcategory": "Costumes",
+      "description": "Manteau élégant en laine mélangée. Coupe droite et col classique.",
+      "image": "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?auto=format&fit=crop&w=800&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1617137968427-85924c800a22?auto=format&fit=crop&w=800&q=80"
+      ],
+      "colors": [
+        {
+          "name": "Bleu Marine",
+          "hex": "#0a192f",
+          "image": "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?auto=format&fit=crop&w=800&q=80"
+        },
+        {
+          "name": "Noir",
+          "hex": "#000000",
+          "image": "https://images.unsplash.com/photo-1507679796233-874256eb9a14?auto=format&fit=crop&w=800&q=80"
+        },
+        {
+          "name": "Gris",
+          "hex": "#6c757d",
+          "image": "https://images.unsplash.com/photo-1594938298603-c8148c47e356?auto=format&fit=crop&w=800&q=80"
+        }
+      ],
+      "attributes": [
+        {
+          "label": "Matière",
+          "value": "80% Laine, 20% Cachemire"
+        },
+        {
+          "label": "Coupe",
+          "value": "Ajustée / Slim Fit"
+        },
+        {
+          "label": "Doublure",
+          "value": "Satin de soie"
+        },
+        {
+          "label": "Fermeture",
+          "value": "Boutons croisés"
+        },
+        {
+          "label": "Entretien",
+          "value": "Nettoyage à sec"
+        }
+      ],
+      "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ]
+    },
+    {
+      "id": "10000012",
+      "name": "Polo Piqué Premium",
+      "brand": "LC Waikiki",
+      "price": 28000,
+      "stock": 35,
+      "category": "Homme",
+      "subcategory": "T-shirts",
+      "description": "Polo en coton piqué de qualité supérieure. Disponible en plusieurs coloris.",
+      "image": "https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?auto=format&fit=crop&w=800&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1626557981101-aae6f84aa6ff?auto=format&fit=crop&w=800&q=80"
+      ]
+    },
+    {
+      "id": "10000013",
+      "name": "Montre Chronographe",
+      "price": 140000,
+      "stock": 15,
+      "category": "Homme",
+      "subcategory": "Accessoires",
+      "description": "Montre chronographe avec bracelet en acier. Précision et style.",
+      "image": "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=800&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1619134778706-7015533a6150?auto=format&fit=crop&w=800&q=80"
+      ]
+    },
+    {
+      "id": "10000021",
+      "name": "Salopette en Jean",
+      "price": 22000,
+      "stock": 18,
+      "category": "Enfant",
+      "subcategory": "Garçon",
+      "description": "Salopette robuste et confortable pour jouer toute la journée.",
+      "image": "https://images.unsplash.com/photo-1519457431-44ccd64a579b?auto=format&fit=crop&w=800&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1519457431-44ccd64a579b?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1519238263496-6362d74c1123?auto=format&fit=crop&w=800&q=80"
+      ]
+    },
+    {
+      "id": "10000022",
+      "name": "Chaussures Scratch",
+      "brand": "Flo",
+      "price": 25000,
+      "stock": 25,
+      "category": "Enfant",
+      "subcategory": "Chaussures",
+      "description": "Baskets à scratch faciles à enfiler. Semelle antidérapante.",
+      "image": "https://images.unsplash.com/photo-1514989940723-e8875ea6ab7d?auto=format&fit=crop&w=800&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1514989940723-e8875ea6ab7d?auto=format&fit=crop&w=800&q=80"
+      ]
+    },
+    {
+      "id": "10000031",
+      "name": "Ordinateur Ultra-Fin",
+      "brand": "Apple",
+      "price": 580000,
+      "stock": 5,
+      "category": "Électronique",
+      "subcategory": "Informatique",
+      "description": "Performance et légèreté. Processeur dernière génération pour les créatifs.",
+      "image": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=800&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1531297461136-82lw8?auto=format&fit=crop&w=800&q=80"
+      ],
+      "colors": [
+        {
+          "name": "Argent",
+          "hex": "#e0e0e0",
+          "image": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=800&q=80"
+        },
+        {
+          "name": "Gris Sidéral",
+          "hex": "#4a4a4a",
+          "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80"
+        }
+      ],
+      "attributes": [
+        {
+          "label": "Processeur",
+          "value": "M3 Pro 12-core"
+        },
+        {
+          "label": "RAM",
+          "value": "18 GB LPDDR5"
+        },
+        {
+          "label": "Stockage",
+          "value": "512 GB SSD NVMe"
+        },
+        {
+          "label": "Écran",
+          "value": "14.2\" Liquid Retina XDR"
+        },
+        {
+          "label": "Batterie",
+          "value": "70Wh (18h autonomie)"
+        },
+        {
+          "label": "Système",
+          "value": "macOS Sonoma"
+        }
+      ]
+    },
+    {
+      "id": "10000032",
+      "name": "Enceinte Bluetooth",
+      "brand": "Samsung",
+      "price": 48000,
+      "stock": 30,
+      "category": "Électronique",
+      "subcategory": "Audio",
+      "description": "Son à 360° et étanche. Parfaite pour la plage ou la piscine.",
+      "image": "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=800&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1589256469067-ea99122bbdc4?auto=format&fit=crop&w=800&q=80"
+      ],
+      "attributes": [
+        {
+          "label": "Processeur",
+          "value": "DSP Audio Quad-core"
+        },
+        {
+          "label": "Batterie",
+          "value": "12h Autonomie"
+        },
+        {
+          "label": "Système",
+          "value": "Bluetooth 5.2"
+        },
+        {
+          "label": "Étanchéité",
+          "value": "IPX7 (Piscine OK)"
+        }
+      ]
+    },
+    {
+      "id": "10000041",
+      "name": "Vase Céramique Artisanal",
+      "price": 28000,
+      "stock": 12,
+      "category": "Maison & Meuble",
+      "subcategory": "Décoration",
+      "description": "Vase fait main, chaque pièce est unique. Idéal pour les fleurs séchées.",
+      "image": "https://images.unsplash.com/photo-1581783342308-f792ca11df53?auto=format&fit=crop&w=800&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1581783342308-f792ca11df53?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1615486511484-92e004d4022c?auto=format&fit=crop&w=800&q=80"
+      ],
+      "attributes": [
+        {
+          "label": "Matière",
+          "value": "Céramique émaillée"
+        },
+        {
+          "label": "Dimensions",
+          "value": "25cm x 15cm"
+        },
+        {
+          "label": "Poids",
+          "value": "1.2 kg"
+        },
+        {
+          "label": "Fabrication",
+          "value": "Artisanal / Main"
+        }
+      ]
+    },
+    {
+      "id": "10000042",
+      "name": "Set de Draps Lin",
+      "price": 75000,
+      "stock": 15,
+      "category": "Maison & Meuble",
+      "subcategory": "Linge de maison",
+      "description": "Draps en lin lavé pour une douceur incomparable. Régule la température.",
+      "image": "https://images.unsplash.com/photo-1578898950587-827cb6b98687?auto=format&fit=crop&w=800&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1578898950587-827cb6b98687?auto=format&fit=crop&w=800&q=80"
+      ]
+    }
+  ]
 }

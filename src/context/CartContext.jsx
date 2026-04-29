@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { useData } from './DataContext';
 
 const CartContext = createContext(null);
 
@@ -13,98 +14,169 @@ const AVAILABLE_COUPONS = {
 
 export const CartProvider = ({ children }) => {
     const { user } = useAuth();
+    const { products } = useData();
 
-    // Cart items
-    const [cartItems, setCartItems] = useState([]);
+    // Cart items (Initialize from localStorage)
+    const [cartItems, setCartItems] = useState(() => {
+        if (!user?.email) return [];
+        const saved = localStorage.getItem(`cart_${user.email}`);
+        return saved ? JSON.parse(saved) : [];
+    });
 
     // Saved items (save for later)
-    const [savedItems, setSavedItems] = useState([]);
+    const [savedItems, setSavedItems] = useState(() => {
+        if (!user?.email) return [];
+        const saved = localStorage.getItem(`savedItems_${user.email}`);
+        return saved ? JSON.parse(saved) : [];
+    });
 
     // Coupon state
     const [appliedCoupon, setAppliedCoupon] = useState(null);
 
-    // Load cart execution when user changes
+    // Selected items (for checkout) - Initialize from localStorage
+    const [selectedItems, setSelectedItems] = useState(() => {
+        if (!user?.email) return {};
+        const saved = localStorage.getItem(`selectedItems_${user.email}`);
+        return saved ? JSON.parse(saved) : {};
+    });
+
+    // Sync selectedItems when cartItems change
     useEffect(() => {
-        if (user) {
+        if (!user?.email) return;
+
+        setSelectedItems(prev => {
+            const newSelection = { ...prev };
+            let hasChanged = false;
+
+            // Ensure any new items added to cart are selected by default
+            cartItems.forEach(item => {
+                const idStr = item.id?.toString();
+                if (idStr && newSelection[idStr] === undefined) {
+                    newSelection[idStr] = true;
+                    hasChanged = true;
+                }
+            });
+
+            // Cleanup: remove items that are no longer in the cart
+            Object.keys(newSelection).forEach(id => {
+                if (!cartItems.find(item => item.id?.toString() === id)) {
+                    delete newSelection[id];
+                    hasChanged = true;
+                }
+            });
+
+            return hasChanged ? newSelection : prev;
+        });
+    }, [cartItems, user?.email]);
+
+    // Sync cart when user identity COMPLETELY changes (Login/Logout)
+    useEffect(() => {
+        if (user?.email) {
+            // Check if we should reload because of a different user
             const savedCart = localStorage.getItem(`cart_${user.email}`);
             setCartItems(savedCart ? JSON.parse(savedCart) : []);
 
             const savedSavedItems = localStorage.getItem(`savedItems_${user.email}`);
             setSavedItems(savedSavedItems ? JSON.parse(savedSavedItems) : []);
         } else {
-            // Optional: Support guest cart by using a generic 'cart' key, 
-            // OR strictly follow user request to empty on logout.
-            // Following strict user request: "le panier doit se vider" on logout.
             setCartItems([]);
             setSavedItems([]);
         }
-    }, [user]);
+    }, [user?.email]);
 
     // Persist cart to localStorage (User specific)
     useEffect(() => {
-        if (user) {
+        if (user?.email) {
             localStorage.setItem(`cart_${user.email}`, JSON.stringify(cartItems));
         }
-    }, [cartItems, user]);
+    }, [cartItems, user?.email]);
 
     // Persist saved items to localStorage (User specific)
     useEffect(() => {
-        if (user) {
+        if (user?.email) {
             localStorage.setItem(`savedItems_${user.email}`, JSON.stringify(savedItems));
         }
-    }, [savedItems, user]);
+    }, [savedItems, user?.email]);
+
+    // Persist selectedItems to localStorage (User specific)
+    useEffect(() => {
+        if (user?.email) {
+            localStorage.setItem(`selectedItems_${user.email}`, JSON.stringify(selectedItems));
+        }
+    }, [selectedItems, user?.email]);
 
     const addToCart = (product) => {
+        if (!user) {
+            return false; // Caller must handle the redirect
+        }
+        const prodIdStr = product.id?.toString();
+        
+        // Strip out reactive price data to just hold the ID and variant info
+        const cartProduct = { ...product };
+
         setCartItems(prevItems => {
-            const existingItem = prevItems.find(item => item.id === product.id);
+            const existingItem = prevItems.find(item => item.id?.toString() === prodIdStr);
             if (existingItem) {
                 return prevItems.map(item =>
-                    item.id === product.id
+                    item.id?.toString() === prodIdStr
                         ? { ...item, quantity: item.quantity + 1 }
                         : item
                 );
             }
-            return [...prevItems, { ...product, quantity: 1 }];
+            return [...prevItems, { ...cartProduct, quantity: 1 }];
         });
+        return true;
     };
 
     const removeFromCart = (id) => {
-        setCartItems(prevItems => prevItems.filter(item => item.id !== id));
+        const idStr = id?.toString();
+        setCartItems(prevItems => prevItems.filter(item => item.id?.toString() !== idStr));
     };
 
     const updateQuantity = (id, quantity) => {
         if (quantity < 1) return;
+        const idStr = id?.toString();
         setCartItems(prevItems =>
             prevItems.map(item =>
-                item.id === id ? { ...item, quantity: Number(quantity) } : item
+                item.id?.toString() === idStr ? { ...item, quantity: Number(quantity) } : item
             )
         );
     };
 
     const clearCart = () => {
         setCartItems([]);
+        setSelectedItems({});
         setAppliedCoupon(null);
+
+        // Explicitly clear from localStorage as well to avoid any race conditions
+        if (user?.email) {
+            localStorage.setItem(`cart_${user.email}`, JSON.stringify([]));
+            localStorage.setItem(`selectedItems_${user.email}`, JSON.stringify({}));
+        }
     };
 
     // Save for later functionality
     const saveForLater = (id) => {
-        const item = cartItems.find(item => item.id === id);
+        const idStr = id?.toString();
+        const item = cartItems.find(item => item.id?.toString() === idStr);
         if (item) {
             setSavedItems(prev => [...prev, item]);
-            removeFromCart(id);
+            removeFromCart(idStr);
         }
     };
 
     const moveToCart = (id) => {
-        const item = savedItems.find(item => item.id === id);
+        const idStr = id?.toString();
+        const item = savedItems.find(item => item.id?.toString() === idStr);
         if (item) {
             addToCart(item);
-            setSavedItems(prev => prev.filter(i => i.id !== id));
+            setSavedItems(prev => prev.filter(i => i.id?.toString() !== idStr));
         }
     };
 
     const removeSavedItem = (id) => {
-        setSavedItems(prev => prev.filter(item => item.id !== id));
+        const idStr = id?.toString();
+        setSavedItems(prev => prev.filter(item => item.id?.toString() !== idStr));
     };
 
     // Coupon functionality
@@ -121,26 +193,78 @@ export const CartProvider = ({ children }) => {
         setAppliedCoupon(null);
     };
 
+    const toggleItemSelection = (id) => {
+        const idStr = id?.toString();
+        setSelectedItems(prev => ({
+            ...prev,
+            [idStr]: !prev[idStr]
+        }));
+    };
+
+    // Sync items with fresh product data
+    const syncWithFreshData = (items) => {
+        if (!products || products.length === 0) return items;
+        return items.map(item => {
+            const freshProduct = products.find(p => p.id?.toString() === item.id?.toString());
+            if (freshProduct) {
+                return {
+                    ...item,
+                    price: freshProduct.price,
+                    flashSale: freshProduct.flashSale,
+                    stock: freshProduct.stock,
+                    name: freshProduct.name,
+                    image: freshProduct.image || (freshProduct.images && freshProduct.images[0])
+                };
+            }
+            return item;
+        });
+    };
+
+    const syncedCartItems = syncWithFreshData(cartItems);
+    const syncedSavedItems = syncWithFreshData(savedItems);
+
+    const isItemSelected = (id) => {
+        const idStr = id?.toString();
+        return selectedItems[idStr] !== false; // Default to true if not found
+    };
+
+    const getSelectedItems = () => {
+        return syncedCartItems.filter(item => isItemSelected(item.id));
+    };
+
     // Calculate subtotal
-    const getSubtotal = () => {
-        return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    const getSubtotal = (onlySelected = false) => {
+        const items = onlySelected ? getSelectedItems() : syncedCartItems;
+        return items.reduce((total, item) => {
+            // Check for flash sale price effectively
+            let itemPrice = item.price;
+            if (item.flashSale && item.flashSale.discount) {
+                const now = new Date();
+                const isActive = (!item.flashSale.startDate || now >= new Date(item.flashSale.startDate)) &&
+                                 (!item.flashSale.endDate || now <= new Date(item.flashSale.endDate));
+                if (isActive) {
+                    itemPrice = Math.round(item.price * (1 - item.flashSale.discount / 100));
+                }
+            }
+            return total + (itemPrice * item.quantity);
+        }, 0);
     };
 
     // Calculate shipping cost
     const getShippingCost = () => {
         if (appliedCoupon?.type === 'free_shipping') return 0;
-        return 1000; // Further reduced flat shipping
+        return 0; // Livraison calculée plus tard ou retirée du panier
     };
 
     // Calculate tax (5% TVA)
-    const getTax = () => {
+    const getTax = (onlySelected = false) => {
         return 0; // Tax removed as requested
     };
 
     // Calculate discount
-    const getDiscount = () => {
+    const getDiscount = (onlySelected = false) => {
         if (!appliedCoupon) return 0;
-        const subtotal = getSubtotal();
+        const subtotal = getSubtotal(onlySelected);
 
         if (appliedCoupon.type === 'percentage') {
             return subtotal * (appliedCoupon.discount / 100);
@@ -151,23 +275,25 @@ export const CartProvider = ({ children }) => {
     };
 
     // Calculate final total
-    const getCartTotal = () => {
-        const subtotal = getSubtotal();
-        const shipping = getShippingCost();
-        const tax = getTax();
-        const discount = getDiscount();
+    const getCartTotal = (onlySelected = false) => {
+        const subtotal = getSubtotal(onlySelected);
+        const shipping = getShippingCost(); // Shipping stays same for order
+        const tax = getTax(onlySelected);
+        const discount = getDiscount(onlySelected);
 
         return Math.max(0, subtotal + shipping + tax - discount);
     };
 
-    const getCartCount = () => {
-        return cartItems.reduce((total, item) => total + item.quantity, 0);
+    const getCartCount = (onlySelected = false) => {
+        const items = onlySelected ? getSelectedItems() : syncedCartItems;
+        return items.reduce((total, item) => total + item.quantity, 0);
     };
 
     return (
         <CartContext.Provider value={{
-            cartItems,
-            savedItems,
+            cartItems: syncedCartItems,
+            rawCartItems: cartItems, // Just in case raw is needed
+            savedItems: syncedSavedItems,
             appliedCoupon,
             addToCart,
             removeFromCart,
@@ -184,6 +310,10 @@ export const CartProvider = ({ children }) => {
             getDiscount,
             getCartTotal,
             getCartCount,
+            selectedItems,
+            toggleItemSelection,
+            isItemSelected,
+            getSelectedItems,
             availableCoupons: AVAILABLE_COUPONS
         }}>
             {children}

@@ -84,6 +84,7 @@ const initialReviews = [
 const initialUsers = [
     { id: 1, name: 'Jean Dupont', email: 'jean@test.com', role: 'client', joined: '2025-01-15' },
     { id: 2, name: 'Admin User', email: 'Trymyday235@gmail.com', role: 'admin', joined: '2025-01-01' },
+    { id: 3, name: 'Test Manager', email: 'manager@test.com', role: 'manager', joined: '2025-02-01' },
 ];
 
 const initialExpenses = [
@@ -126,21 +127,21 @@ export const DataProvider = ({ children }) => {
         const fetchData = async () => {
             try {
                 // Fetch Products
-                const prodRes = await fetch(`${API_BASE_URL}/api/products`);
+                const prodRes = await authFetch(`${API_BASE_URL}/api/products`);
                 if (prodRes.ok) {
                     const prodData = await prodRes.json();
                     setProducts(prodData);
                 }
 
                 // Fetch Orders
-                const orderRes = await fetch(`${API_BASE_URL}/api/orders`);
+                const orderRes = await authFetch(`${API_BASE_URL}/api/orders`);
                 if (orderRes.ok) {
                     const orderData = await orderRes.json();
                     setOrders(orderData);
                 }
 
                 // Fetch Users (for Admin view)
-                const userRes = await fetch(`${API_BASE_URL}/api/admin/wallet/users`);
+                const userRes = await authFetch(`${API_BASE_URL}/api/admin/wallet/users`);
                 if (userRes.ok) {
                     const userData = await userRes.json();
                     if (userData.success) {
@@ -181,7 +182,7 @@ export const DataProvider = ({ children }) => {
             // Optimistic update
             setProducts(prev => [...prev, newProduct]);
 
-            const response = await fetch(`${API_BASE_URL}/api/products`, {
+            const response = await authFetch(`${API_BASE_URL}/api/products`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newProduct)
@@ -205,7 +206,7 @@ export const DataProvider = ({ children }) => {
             const idStr = id.toString();
             setProducts(prev => prev.map(p => p.id.toString() === idStr ? { ...p, ...updatedProduct } : p));
 
-            const response = await fetch(`${API_BASE_URL}/api/products/${idStr}`, {
+            const response = await authFetch(`${API_BASE_URL}/api/products/${idStr}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedProduct)
@@ -222,7 +223,7 @@ export const DataProvider = ({ children }) => {
             const idStr = id.toString();
             setProducts(prev => prev.filter(p => p.id.toString() !== idStr));
 
-            const response = await fetch(`${API_BASE_URL}/api/products/${idStr}`, {
+            const response = await authFetch(`${API_BASE_URL}/api/products/${idStr}`, {
                 method: 'DELETE'
             });
             return response.ok;
@@ -257,7 +258,7 @@ export const DataProvider = ({ children }) => {
         setOrders(prevOrders => [newOrder, ...prevOrders]);
 
         try {
-            await fetch(`${API_BASE_URL}/api/orders`, {
+            await authFetch(`${API_BASE_URL}/api/orders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newOrder)
@@ -274,7 +275,7 @@ export const DataProvider = ({ children }) => {
         setOrders(prevOrders => prevOrders.map(o => o.id === id ? { ...o, ...updatedData } : o));
 
         try {
-            await fetch(`${API_BASE_URL}/api/orders/${id}/status`, {
+            await authFetch(`${API_BASE_URL}/api/orders/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedData)
@@ -319,7 +320,7 @@ export const DataProvider = ({ children }) => {
     const adminUpdateUser = async (id, updatedData) => {
         try {
             setUsers(prev => prev.map(u => (u.id === id || u.email === id) ? { ...u, ...updatedData } : u));
-            const response = await fetch(`${API_BASE_URL}/api/admin/users/${id}`, {
+            const response = await authFetch(`${API_BASE_URL}/api/admin/users/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedData)
@@ -334,7 +335,7 @@ export const DataProvider = ({ children }) => {
     const adminDeleteUser = async (email) => {
         try {
             setUsers(prev => prev.filter(u => u.email !== email));
-            const response = await fetch(`${API_BASE_URL}/api/admin/users/${email}`, {
+            const response = await authFetch(`${API_BASE_URL}/api/admin/users/${email}`, {
                 method: 'DELETE'
             });
             return response.ok;
@@ -352,7 +353,7 @@ export const DataProvider = ({ children }) => {
             // Re-use register endpoint or add a specific admin one? 
             // Register works but might have different logic. 
             // Let's assume register works for now as it handles users.json.
-            const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+            const response = await authFetch(`${API_BASE_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newUser)
@@ -379,3 +380,16 @@ export const DataProvider = ({ children }) => {
 };
 
 export const useData = () => useContext(DataContext);
+
+
+// Auto-Injected fetch wrapper for JWT
+const authFetch = async (url, options = {}) => {
+    const token = localStorage.getItem('token');
+    if (token && url.includes('/api/')) {
+        options.headers = {
+            ...options.headers,
+            'Authorization': 'Bearer ' + token,
+        };
+    }
+    return fetch(url, options);
+};

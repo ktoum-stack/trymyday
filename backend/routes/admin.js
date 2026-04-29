@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleware');
 const fs = require('fs').promises;
 const path = require('path');
 const nodemailer = require('nodemailer');
@@ -49,7 +50,7 @@ router.post('/wallet/email-notification', async (req, res) => {
 });
 
 // POST /api/admin/wallet/credit - Credit user wallet (Admin only)
-router.post('/wallet/credit', async (req, res) => {
+router.post('/wallet/credit', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const { email, userId, amount, description } = req.body;
 
@@ -123,7 +124,7 @@ router.post('/wallet/credit', async (req, res) => {
 });
 
 // GET /api/admin/wallet/users - Get all users with balances
-router.get('/wallet/users', async (req, res) => {
+router.get('/wallet/users', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const users = await getUsers();
 
@@ -152,7 +153,7 @@ router.get('/wallet/users', async (req, res) => {
 });
 
 // GET /api/admin/wallet/history - Get all wallet transactions
-router.get('/wallet/history', async (req, res) => {
+router.get('/wallet/history', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const users = await getUsers();
 
@@ -208,7 +209,7 @@ router.get('/revenue', async (req, res) => {
 });
 
 // POST /api/admin/order-email - Send order status email
-router.post('/order-email', async (req, res) => {
+router.post('/order-email', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const { order, status, note } = req.body;
         console.log(`📩 Triggering email for Order #${order?.id}, Status: ${status}`);
@@ -230,7 +231,7 @@ router.post('/order-email', async (req, res) => {
 });
 
 // POST /api/admin/order-refund - Process refund for cancelled order
-router.post('/order-refund', async (req, res) => {
+router.post('/order-refund', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const { order, note } = req.body;
         console.log(`💰 Processing refund for Order #${order?.id}`);
@@ -247,15 +248,28 @@ router.post('/order-refund', async (req, res) => {
         }
 
         const user = users[userIndex];
+
+        // 🔒 IDEMPOTENCY CHECK: prevent double refund for same order
+        const alreadyRefunded = (user.transactions || []).some(
+            tx => tx.description && tx.description.includes(`#${order.id}`) && tx.type === 'credit'
+        );
+        if (alreadyRefunded) {
+            console.warn(`⚠️ Refund already processed for order #${order.id} — skipping.`);
+            return res.status(409).json({
+                success: false,
+                message: `Un remboursement a déjà été effectué pour la commande #${order.id}.`
+            });
+        }
+
         const refundAmount = parseFloat(order.total);
         const oldBalance = user.walletBalance || 0;
 
         // Update balance
-        user.walletBalance += refundAmount;
+        user.walletBalance = oldBalance + refundAmount;
 
         // Add transaction
         user.transactions.push({
-            id: `refund_${Date.now()}`,
+            id: `refund_${order.id}_${Date.now()}`,
             type: 'credit',
             amount: refundAmount,
             date: new Date().toISOString(),
@@ -308,7 +322,7 @@ router.put('/users/:id', async (req, res) => {
 });
 
 // DELETE /api/admin/users/:email - Delete user (Admin only)
-router.delete('/users/:email', async (req, res) => {
+router.delete('/users/:email', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const { email } = req.params;
         const users = await getUsers();
@@ -327,6 +341,41 @@ router.delete('/users/:email', async (req, res) => {
 
         await saveUsers(filteredUsers);
         res.json({ success: true, message: 'User deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// POST /api/admin/wallet/undo-transaction - Rollback a credit transaction
+router.post('/wallet/undo-transaction', authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+        const { transactionId } = req.body;
+        const users = await getUsers();
+        let transactionFound = false;
+        let targetUserEmail = null;
+
+        for (const user of users) {
+            const txIndex = user.transactions.findIndex(tx => tx.id === transactionId);
+            if (txIndex !== -1) {
+                const tx = user.transactions[txIndex];
+                if (tx.type === 'credit') {
+                    user.walletBalance -= tx.amount;
+                    tx.description += ' (Annulée par l\'admin)';
+                    tx.type = 'debit'; // Effectively counters the credit
+                    tx.reversed = true;
+                    transactionFound = true;
+                    targetUserEmail = user.email;
+                    break;
+                }
+            }
+        }
+
+        if (!transactionFound) {
+            return res.status(404).json({ success: false, message: 'Transaction non trouvée ou non réversible' });
+        }
+
+        await saveUsers(users);
+        res.json({ success: true, message: 'Transaction annulée avec succès' });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

@@ -2,11 +2,15 @@ import { Container, Row, Col, Card, Button, Modal, Form, Alert, Badge } from 're
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 import ProfileLayout from '../components/ProfileLayout';
+import { useLanguage } from '../context/LanguageContext';
 
 const Cards = () => {
     const { user } = useAuth();
+    const { showToast, confirm } = useToast();
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const [showCardModal, setShowCardModal] = useState(false);
     const [editingCard, setEditingCard] = useState(null);
 
@@ -30,10 +34,10 @@ const Cards = () => {
         return (
             <Container className="py-5 text-center">
                 <Alert variant="light" className="border">
-                    <Alert.Heading>Connexion requise</Alert.Heading>
-                    <p>Veuillez vous connecter pour accéder à vos cartes.</p>
+                    <Alert.Heading>{t('favorites_page.login_required')}</Alert.Heading>
+                    <p>{t('cart.login_to_checkout')}</p>
                     <Button variant="warning" className="text-white" onClick={() => navigate('/login')}>
-                        Se connecter
+                        {t('auth.login_btn')}
                     </Button>
                 </Alert>
             </Container>
@@ -51,7 +55,7 @@ const Cards = () => {
     // Add or update card
     const handleSaveCard = () => {
         if (!cardData.cardNumber || !cardData.cardHolder || !cardData.expiryDate || !cardData.cvv) {
-            alert('Veuillez remplir tous les champs');
+            showToast(t('cards.fill_all'), 'warning');
             return;
         }
 
@@ -83,22 +87,31 @@ const Cards = () => {
             };
 
             // If this is set as default, remove default from others
-            let updatedCards = savedCards;
+            let baseCards = savedCards;
             if (newCard.isDefault) {
-                updatedCards = savedCards.map(card => ({ ...card, isDefault: false }));
+                baseCards = savedCards.map(card => ({ ...card, isDefault: false }));
             }
 
-            saveCards([...updatedCards, newCard]);
+            saveCards([...baseCards, newCard]);
         }
 
+        showToast(editingCard ? t('cards.edit_success') : t('cards.add_success'), 'success');
         resetForm();
     };
 
     // Delete card
-    const handleDeleteCard = (id) => {
-        if (window.confirm('Êtes-vous sûr de vouloir supprimer cette carte ?')) {
+    const handleDeleteCard = async (id) => {
+        const ok = await confirm({
+            title: t('cards.delete_confirm_title'),
+            message: t('cards.delete_confirm_msg'),
+            variant: 'danger',
+            confirmText: t('common.delete')
+        });
+
+        if (ok) {
             const newCards = savedCards.filter(card => card.id !== id);
             saveCards(newCards);
+            showToast(t('cards.delete_success'), 'success');
         }
     };
 
@@ -109,6 +122,7 @@ const Cards = () => {
             isDefault: card.id === id
         }));
         saveCards(updatedCards);
+        showToast(t('cards.default_updated'), 'success');
     };
 
     // Reset form
@@ -141,17 +155,18 @@ const Cards = () => {
         <ProfileLayout>
             <h3 className="mb-4 fw-bold">
                 <i className="bi bi-credit-card me-2"></i>
-                Mes cartes bancaires
+                {t('cards.title')}
             </h3>
+# (re-translating specific "Mes cartes bancaires" if I find a better key)
 
             {savedCards.length === 0 ? (
                 <Card className="border-0 shadow-sm text-center p-5">
                     <i className="bi bi-credit-card" style={{ fontSize: '4rem', color: '#ddd' }}></i>
-                    <h5 className="mt-3 text-muted">Aucune carte enregistrée</h5>
-                    <p className="text-muted">Ajoutez une carte pour faciliter vos paiements</p>
+                    <h5 className="mt-3 text-muted">{t('cards.no_cards')}</h5>
+                    <p className="text-muted">{t('cards.add_first')}</p>
                     <Button variant="warning" className="text-white mt-2" onClick={() => setShowCardModal(true)}>
                         <i className="bi bi-plus-circle me-2"></i>
-                        Ajouter une carte
+                        {t('cards.add_btn')}
                     </Button>
                 </Card>
             ) : (
@@ -159,7 +174,7 @@ const Cards = () => {
                     <div className="mb-3">
                         <Button variant="warning" className="text-white" onClick={() => setShowCardModal(true)}>
                             <i className="bi bi-plus-circle me-2"></i>
-                            Ajouter une carte
+                            {t('cards.add_btn')}
                         </Button>
                     </div>
 
@@ -173,14 +188,14 @@ const Cards = () => {
                                                 <i className="bi bi-credit-card-2-front" style={{ fontSize: '2rem', color: '#ffc107' }}></i>
                                             </div>
                                             {card.isDefault && (
-                                                <Badge bg="success">Par défaut</Badge>
+                                                <Badge bg="success">{t('cards.default_badge')}</Badge>
                                             )}
                                         </div>
 
                                         <div className="mb-3">
                                             <h5 className="mb-1">•••• •••• •••• {card.lastFour}</h5>
                                             <p className="text-muted mb-0">{card.cardHolder}</p>
-                                            <small className="text-muted">Expire: {card.expiryDate}</small>
+                                            <small className="text-muted">{t('cards.expire_label')}: {card.expiryDate}</small>
                                         </div>
 
                                         <div className="d-flex gap-2">
@@ -190,7 +205,7 @@ const Cards = () => {
                                                     size="sm"
                                                     onClick={() => handleSetDefault(card.id)}
                                                 >
-                                                    Définir par défaut
+                                                    {t('cards.set_default_btn')}
                                                 </Button>
                                             )}
                                             <Button
@@ -212,12 +227,12 @@ const Cards = () => {
             {/* Add/Edit Card Modal */}
             <Modal show={showCardModal} onHide={resetForm} centered>
                 <Modal.Header closeButton>
-                    <Modal.Title>{editingCard ? 'Modifier' : 'Ajouter'} une carte</Modal.Title>
+                    <Modal.Title>{editingCard ? t('cards.edit_modal_title') : t('cards.add_modal_title')}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <Form>
                         <Form.Group className="mb-3">
-                            <Form.Label>Numéro de carte *</Form.Label>
+                            <Form.Label>{t('cards.card_number_label')} *</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="1234 5678 9012 3456"
@@ -228,7 +243,7 @@ const Cards = () => {
                         </Form.Group>
 
                         <Form.Group className="mb-3">
-                            <Form.Label>Nom du titulaire *</Form.Label>
+                            <Form.Label>{t('cards.card_holder_label')} *</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="NOM PRENOM"
@@ -240,7 +255,7 @@ const Cards = () => {
                         <Row>
                             <Col>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Date d'expiration *</Form.Label>
+                                    <Form.Label>{t('cards.expiry_date_label')} *</Form.Label>
                                     <Form.Control
                                         type="text"
                                         placeholder="MM/AA"
@@ -258,7 +273,7 @@ const Cards = () => {
                             </Col>
                             <Col>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>CVV *</Form.Label>
+                                    <Form.Label>{t('cards.cvv_label')} *</Form.Label>
                                     <Form.Control
                                         type="text"
                                         placeholder="123"
@@ -273,19 +288,20 @@ const Cards = () => {
                         <Form.Group className="mb-3">
                             <Form.Check
                                 type="checkbox"
-                                label="Définir comme carte par défaut"
+                                label={t('cards.set_default_checkbox')}
                                 checked={cardData.isDefault}
                                 onChange={(e) => setCardData({ ...cardData, isDefault: e.target.checked })}
                             />
                         </Form.Group>
+# (re-translating specific "Définir comme carte par défaut" message if I find a better key)
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={resetForm}>
-                        Annuler
+                        {t('common.cancel')}
                     </Button>
                     <Button variant="warning" className="text-white" onClick={handleSaveCard}>
-                        {editingCard ? 'Modifier' : 'Ajouter'}
+                        {editingCard ? t('common.edit') : t('common.add')}
                     </Button>
                 </Modal.Footer>
             </Modal>

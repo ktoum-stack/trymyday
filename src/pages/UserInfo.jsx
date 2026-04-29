@@ -3,10 +3,12 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import ProfileLayout from '../components/ProfileLayout';
+import { useLanguage } from '../context/LanguageContext';
 
 const UserInfo = () => {
     const { user, updateUser } = useAuth();
     const navigate = useNavigate();
+    const { t } = useLanguage();
 
     const [formData, setFormData] = useState({
         name: user?.name || '',
@@ -33,11 +35,11 @@ const UserInfo = () => {
 
         if (formData.newPassword) {
             if (formData.newPassword !== formData.confirmPassword) {
-                setError('Les mots de passe ne correspondent pas');
+                setError(t('user_info.password_mismatch'));
                 return;
             }
             if (formData.newPassword.length < 6) {
-                setError('Le mot de passe doit contenir au moins 6 caractères');
+                setError(t('user_info.password_short'));
                 return;
             }
         }
@@ -67,13 +69,13 @@ const UserInfo = () => {
     return (
         <ProfileLayout>
             <div className="mb-4">
-                <h3 className="fw-bold">Informations utilisateur</h3>
-                <p className="text-muted">Gérez vos informations personnelles</p>
+                <h3 className="fw-bold">{t('user_info.title')}</h3>
+                <p className="text-muted">{t('user_info.subtitle')}</p>
             </div>
 
             {showSuccess && (
                 <Alert variant="success" dismissible onClose={() => setShowSuccess(false)}>
-                    Vos informations ont été mises à jour avec succès !
+                    {t('user_info.success_msg')}
                 </Alert>
             )}
 
@@ -85,12 +87,12 @@ const UserInfo = () => {
 
             <Card className="border-0 shadow-sm mb-4">
                 <Card.Body className="p-4">
-                    <h5 className="fw-bold mb-4">Informations personnelles</h5>
+                    <h5 className="fw-bold mb-4">{t('user_info.personal_info')}</h5>
                     <Form onSubmit={handleSubmit}>
                         <Row>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Nom complet *</Form.Label>
+                                    <Form.Label>{t('user_info.full_name')}</Form.Label>
                                     <Form.Control
                                         type="text"
                                         name="name"
@@ -102,7 +104,7 @@ const UserInfo = () => {
                             </Col>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Email *</Form.Label>
+                                    <Form.Label>{t('user_info.email')}</Form.Label>
                                     <Form.Control
                                         type="email"
                                         name="email"
@@ -115,7 +117,7 @@ const UserInfo = () => {
                         </Row>
 
                         <Form.Group className="mb-4">
-                            <Form.Label>Téléphone</Form.Label>
+                            <Form.Label>{t('user_info.phone')}</Form.Label>
                             <Form.Control
                                 type="tel"
                                 name="phone"
@@ -127,44 +129,44 @@ const UserInfo = () => {
 
                         <hr className="my-4" />
 
-                        <h5 className="fw-bold mb-4">Changer le mot de passe</h5>
+                        <h5 className="fw-bold mb-4">{t('user_info.change_password')}</h5>
                         <p className="text-muted small mb-3">
-                            Laissez ces champs vides si vous ne souhaitez pas changer votre mot de passe
+                            {t('user_info.change_password_hint')}
                         </p>
 
                         <Form.Group className="mb-3">
-                            <Form.Label>Mot de passe actuel</Form.Label>
+                            <Form.Label>{t('user_info.current_password')}</Form.Label>
                             <Form.Control
                                 type="password"
                                 name="currentPassword"
                                 value={formData.currentPassword}
                                 onChange={handleChange}
-                                placeholder="Entrez votre mot de passe actuel"
+                                placeholder={t('user_info.current_password_placeholder')}
                             />
                         </Form.Group>
 
                         <Row>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Nouveau mot de passe</Form.Label>
+                                    <Form.Label>{t('user_info.new_password')}</Form.Label>
                                     <Form.Control
                                         type="password"
                                         name="newPassword"
                                         value={formData.newPassword}
                                         onChange={handleChange}
-                                        placeholder="Minimum 6 caractères"
+                                        placeholder={t('user_info.new_password_placeholder')}
                                     />
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Confirmer le nouveau mot de passe</Form.Label>
+                                    <Form.Label>{t('user_info.confirm_new_password')}</Form.Label>
                                     <Form.Control
                                         type="password"
                                         name="confirmPassword"
                                         value={formData.confirmPassword}
                                         onChange={handleChange}
-                                        placeholder="Retapez le mot de passe"
+                                        placeholder={t('user_info.confirm_password_placeholder')}
                                     />
                                 </Form.Group>
                             </Col>
@@ -172,10 +174,10 @@ const UserInfo = () => {
 
                         <div className="d-flex justify-content-between mt-4">
                             <Button variant="outline-secondary" onClick={() => navigate('/profile')}>
-                                Retour
+                                {t('user_info.back')}
                             </Button>
                             <Button variant="warning" type="submit" className="text-white fw-bold px-4">
-                                Enregistrer les modifications
+                                {t('user_info.save_changes')}
                             </Button>
                         </div>
                     </Form>
@@ -184,26 +186,26 @@ const UserInfo = () => {
 
             <Card className="border-0 shadow-sm">
                 <Card.Body className="p-4">
-                    <h5 className="fw-bold mb-3">Informations du compte</h5>
+                    <h5 className="fw-bold mb-3">{t('user_info.account_details')}</h5>
                     <div className="bg-light p-3 rounded">
                         <Row>
                             <Col md={6} className="mb-2">
-                                <small className="text-muted d-block">ID Utilisateur</small>
+                                <small className="text-muted d-block">{t('user_info.user_id')}</small>
                                 <strong className="small">{user?.id || 'N/A'}</strong>
                             </Col>
                             <Col md={6} className="mb-2">
-                                <small className="text-muted d-block">Date d'inscription</small>
+                                <small className="text-muted d-block">{t('user_info.join_date')}</small>
                                 <strong className="small">
                                     {user?.createdAt || new Date().toLocaleDateString('fr-FR')}
                                 </strong>
                             </Col>
                             <Col md={6}>
-                                <small className="text-muted d-block">Type de compte</small>
-                                <strong className="small">{user?.role === 'admin' ? 'Administrateur' : 'Client'}</strong>
+                                <small className="text-muted d-block">{t('user_info.account_type')}</small>
+                                <strong className="small">{user?.role === 'admin' ? t('user_info.role_admin') : t('user_info.role_customer')}</strong>
                             </Col>
                             <Col md={6}>
-                                <small className="text-muted d-block">Statut</small>
-                                <strong className="small text-success">Actif</strong>
+                                <small className="text-muted d-block">{t('user_info.status')}</small>
+                                <strong className="small text-success">{t('user_info.status_active')}</strong>
                             </Col>
                         </Row>
                     </div>

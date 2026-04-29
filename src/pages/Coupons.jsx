@@ -1,12 +1,16 @@
 import { Card, Button, Row, Col, Badge } from 'react-bootstrap';
 import { useState } from 'react';
+import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import ProfileLayout from '../components/ProfileLayout';
+import { useLanguage } from '../context/LanguageContext';
 
 const Coupons = () => {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const navigate = useNavigate();
+    const { t } = useLanguage();
 
     // Load coupons from localStorage
     const [coupons, setCoupons] = useState(() => {
@@ -19,7 +23,7 @@ const Coupons = () => {
                 code: 'BIENVENUE10',
                 discount: 10,
                 type: 'percentage',
-                description: 'Coupon de bienvenue',
+                description: t('coupons.welcome_desc'),
                 minAmount: 50,
                 expiryDate: '2025-12-31',
                 used: false
@@ -29,7 +33,7 @@ const Coupons = () => {
                 code: 'NOEL2025',
                 discount: 20,
                 type: 'percentage',
-                description: 'Promotion de Noël',
+                description: t('coupons.xmas_desc'),
                 minAmount: 100,
                 expiryDate: '2025-12-25',
                 used: false
@@ -39,7 +43,7 @@ const Coupons = () => {
                 code: 'LIVRAISON',
                 discount: 0,
                 type: 'shipping',
-                description: 'Livraison gratuite',
+                description: t('coupons.free_shipping'),
                 minAmount: 0,
                 expiryDate: '2026-01-31',
                 used: false
@@ -49,7 +53,7 @@ const Coupons = () => {
 
     const handleCopyCoupon = (code) => {
         navigator.clipboard.writeText(code);
-        alert(`Code "${code}" copié dans le presse-papiers !`);
+        showToast(t('coupons.copy_success').replace('{code}', code), 'info');
     };
 
     const handleUseCoupon = (code) => {
@@ -63,7 +67,7 @@ const Coupons = () => {
     };
 
     const getDiscountText = (coupon) => {
-        if (coupon.type === 'shipping') return 'Livraison gratuite';
+        if (coupon.type === 'shipping') return t('coupons.free_shipping');
         if (coupon.type === 'percentage') return `-${coupon.discount}%`;
         return `-${coupon.discount.toLocaleString()} FCFA`;
     };
@@ -76,15 +80,15 @@ const Coupons = () => {
         return (
             <ProfileLayout>
                 <div className="mb-4">
-                    <h3 className="fw-bold">Mes coupons</h3>
-                    <p className="text-muted">Gérez vos codes promo</p>
+                    <h3 className="fw-bold">{t('coupons.title')}</h3>
+                    <p className="text-muted">{t('coupons.subtitle')}</p>
                 </div>
                 <Card className="border-0 shadow-sm text-center p-5">
                     <i className="bi bi-person-x" style={{ fontSize: '4rem', color: '#ddd' }}></i>
-                    <h5 className="mt-3">Connexion requise</h5>
-                    <p className="text-muted">Connectez-vous pour voir vos coupons</p>
+                    <h5 className="mt-3">{t('favorites_page.login_required')}</h5>
+                    <p className="text-muted">{t('profile.login_prompt')}</p>
                     <Button variant="warning" className="text-white mt-2" onClick={() => navigate('/login')}>
-                        Se connecter
+                        {t('auth.login_btn')}
                     </Button>
                 </Card>
             </ProfileLayout>
@@ -94,14 +98,14 @@ const Coupons = () => {
     return (
         <ProfileLayout>
             <div className="mb-4">
-                <h3 className="fw-bold">Mes coupons</h3>
-                <p className="text-muted">Utilisez vos codes promo pour économiser</p>
+                <h3 className="fw-bold">{t('coupons.title')}</h3>
+                <p className="text-muted">{t('coupons.subtitle_active')}</p>
             </div>
 
             {/* Active Coupons */}
             {activeCoupons.length > 0 && (
                 <div className="mb-4">
-                    <h5 className="fw-bold mb-3">Coupons disponibles ({activeCoupons.length})</h5>
+                    <h5 className="fw-bold mb-3">{t('coupons.active_title')} ({activeCoupons.length})</h5>
                     <Row className="g-3">
                         {activeCoupons.map(coupon => (
                             <Col key={coupon.id} md={6} lg={4}>
@@ -121,7 +125,7 @@ const Coupons = () => {
                                         <div className="bg-white bg-opacity-25 rounded p-2 mb-2">
                                             <div className="d-flex justify-content-between align-items-center">
                                                 <div>
-                                                    <small className="opacity-75 d-block" style={{ fontSize: '0.7rem' }}>Code promo</small>
+                                                    <small className="opacity-75 d-block" style={{ fontSize: '0.7rem' }}>{t('cart.coupon_code')}</small>
                                                     <strong style={{ fontSize: '1rem', letterSpacing: '1px' }}>
                                                         {coupon.code}
                                                     </strong>
@@ -141,12 +145,12 @@ const Coupons = () => {
                                             {coupon.minAmount > 0 && (
                                                 <small className="d-block opacity-75" style={{ fontSize: '0.75rem' }}>
                                                     <i className="bi bi-info-circle me-1"></i>
-                                                    Min: {coupon.minAmount.toLocaleString()} FCFA
+                                                    {t('coupons.min_prefix')} {coupon.minAmount.toLocaleString()} FCFA
                                                 </small>
                                             )}
                                             <small className="d-block opacity-75" style={{ fontSize: '0.75rem' }}>
                                                 <i className="bi bi-calendar me-1"></i>
-                                                Jusqu'au {new Date(coupon.expiryDate).toLocaleDateString('fr-FR')}
+                                                {t('coupons.expiry_prefix')} {new Date(coupon.expiryDate).toLocaleDateString()}
                                             </small>
                                         </div>
 
@@ -156,7 +160,7 @@ const Coupons = () => {
                                             className="w-100 fw-bold"
                                             onClick={() => handleUseCoupon(coupon.code)}
                                         >
-                                            Utiliser
+                                            {t('coupons.use_btn')}
                                         </Button>
                                     </Card.Body>
                                 </Card>
@@ -169,7 +173,7 @@ const Coupons = () => {
             {/* Used Coupons */}
             {usedCoupons.length > 0 && (
                 <div className="mb-4">
-                    <h5 className="fw-bold mb-3">Coupons utilisés ({usedCoupons.length})</h5>
+                    <h5 className="fw-bold mb-3">{t('coupons.used_title')} ({usedCoupons.length})</h5>
                     <Row className="g-3">
                         {usedCoupons.map(coupon => (
                             <Col key={coupon.id} md={6} lg={4}>
@@ -196,7 +200,7 @@ const Coupons = () => {
             {/* Expired Coupons */}
             {expiredCoupons.length > 0 && (
                 <div className="mb-4">
-                    <h5 className="fw-bold mb-3">Coupons expirés ({expiredCoupons.length})</h5>
+                    <h5 className="fw-bold mb-3">{t('coupons.expired_title')} ({expiredCoupons.length})</h5>
                     <Row className="g-3">
                         {expiredCoupons.map(coupon => (
                             <Col key={coupon.id} md={6} lg={4}>
@@ -207,11 +211,11 @@ const Coupons = () => {
                                                 <h6 className="fw-bold mb-1 text-muted">{getDiscountText(coupon)}</h6>
                                                 <small className="text-muted" style={{ fontSize: '0.8rem' }}>{coupon.description}</small>
                                             </div>
-                                            <Badge bg="danger">Expiré</Badge>
+                                            <Badge bg="danger">{t('coupons.expired_badge')}</Badge>
                                         </div>
                                         <div className="mt-2">
                                             <small className="text-muted" style={{ fontSize: '0.75rem' }}>
-                                                Code: {coupon.code} • Expiré le {new Date(coupon.expiryDate).toLocaleDateString('fr-FR')}
+                                                {t('cart.coupon_code')}: {coupon.code} • {t('coupons.expired_date_prefix')} {new Date(coupon.expiryDate).toLocaleDateString()}
                                             </small>
                                         </div>
                                     </Card.Body>
@@ -226,10 +230,10 @@ const Coupons = () => {
             {activeCoupons.length === 0 && usedCoupons.length === 0 && expiredCoupons.length === 0 && (
                 <Card className="border-0 shadow-sm text-center p-5">
                     <i className="bi bi-ticket-perforated" style={{ fontSize: '4rem', color: '#ddd' }}></i>
-                    <h5 className="mt-3">Aucun coupon disponible</h5>
-                    <p className="text-muted">Vos coupons apparaîtront ici</p>
+                    <h5 className="mt-3">{t('coupons.no_coupons')}</h5>
+                    <p className="text-muted">{t('coupons.no_coupons_msg')}</p>
                     <Button variant="warning" className="text-white mt-2" onClick={() => navigate('/shop')}>
-                        Découvrir la boutique
+                        {t('orders.view_shop')}
                     </Button>
                 </Card>
             )}

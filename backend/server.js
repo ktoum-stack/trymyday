@@ -2,6 +2,8 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const walletRoutes = require('./routes/wallet');
@@ -10,8 +12,18 @@ const adminRoutes = require('./routes/admin');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
+// Base Security Middlewares
+app.use(helmet()); // Sets multiple security headers
+app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3000'] }));
+
+// Rate Limiter to prevent DoS & Brute Force
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 200, // limit each IP to 200 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.'
+});
+app.use(limiter);
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -25,8 +37,10 @@ app.use((req, res, next) => {
 app.use('/api/wallet', walletRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payment', require('./routes/payment'));
+app.use('/api/fedapay', require('./routes/fedapay'));
 app.use('/api/products', require('./routes/products'));
 
+app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/auth', require('./routes/auth'));
 
@@ -47,5 +61,4 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
     console.log(`🚀 Backend server running on http://localhost:${PORT}`);
-
 });

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs').promises;
 const path = require('path');
+const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleware');
 
 const PRODUCTS_FILE = path.join(__dirname, '../data/products.json');
 
@@ -32,7 +33,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/products - Create a product
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const newProduct = req.body;
         const products = await getProducts();
@@ -52,7 +53,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT /api/products/:id - Update a product
-router.put('/:id', async (req, res) => {
+router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
         const updatedData = req.body;
@@ -74,7 +75,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/products/:id - Delete a product
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
         let products = await getProducts();

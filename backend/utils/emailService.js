@@ -110,7 +110,7 @@ const emailTemplates = {
     walletCredit: (email, amount, newBalance) => {
         return {
             to: email,
-            subject: '💰 Crédit reçu sur votre compte TRYMYDAY !',
+            subject: '💰 Virement reçu sur votre compte TRYMYDAY !',
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 15px; overflow: hidden;">
                     <div style="background: #ff9900; padding: 30px; text-align: center; color: white;">
@@ -118,7 +118,7 @@ const emailTemplates = {
                     </div>
                     <div style="padding: 40px 30px;">
                         <h2>Bonne nouvelle !</h2>
-                        <p>Votre compte a été crédité de <strong>${amount.toLocaleString()} FCFA</strong>.</p>
+                        <p>Vous avez reçu un virement de <strong>${amount.toLocaleString()} FCFA</strong>.</p>
                         <p><strong>Nouveau solde:</strong> ${newBalance.toLocaleString()} FCFA</p>
                         <div style="text-align: center; margin-top: 30px;">
                             <a href="https://trymyday.com/shop" style="background: #333; color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px;">Faire mon shopping</a>
@@ -126,6 +126,35 @@ const emailTemplates = {
                     </div>
                     <div style="background: #f1f1f1; padding: 20px; text-align: center;">
                         &copy; 2025 TRYMYDAY.
+                    </div>
+                </div>
+            `
+        };
+    },
+    
+    passwordReset: (user, tempPassword) => {
+        return {
+            to: user.email,
+            subject: 'Réinitialisation de votre mot de passe - TRY MY DAY',
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 15px; overflow: hidden;">
+                    <div style="background: #ff9900; padding: 30px; text-align: center; color: white;">
+                        <h1>TRYMYDAY</h1>
+                    </div>
+                    <div style="padding: 40px 30px;">
+                        <h2>Réinitialisation de mot de passe</h2>
+                        <p>Bonjour ${user.name},</p>
+                        <p>Vous avez demandé à réinitialiser votre mot de passe. Voici votre mot de passe temporaire :</p>
+                        <div style="background: #f9f9f9; padding: 15px; text-align: center; border-radius: 10px; margin: 20px 0;">
+                            <strong style="font-size: 24px; letter-spacing: 2px;">${tempPassword}</strong>
+                        </div>
+                        <p style="color: #666; font-size: 14px;">Pour des raisons de sécurité, nous vous conseillons de le modifier une fois connecté.</p>
+                        <div style="text-align: center; margin-top: 30px;">
+                            <a href="http://localhost:5173/login" style="background: #333; color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px;">Me Connecter</a>
+                        </div>
+                    </div>
+                    <div style="background: #f1f1f1; padding: 20px; text-align: center; font-size: 12px; color: #888;">
+                        &copy; 2025 TRYMYDAY. Ce mot de passe est strictement confidentiel.
                     </div>
                 </div>
             `

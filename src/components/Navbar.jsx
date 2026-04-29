@@ -1,21 +1,55 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Form, Badge, Nav, InputGroup, Button, NavDropdown } from 'react-bootstrap';
+import { Container, Row, Col, Form, Badge, Nav, InputGroup, Button, NavDropdown, Offcanvas, ListGroup } from 'react-bootstrap';
 import { useAuth } from '../context/AuthContext';
 import { useData, CATEGORIES } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useState, useRef, useEffect } from 'react';
+import API_BASE_URL from '../config';
 
 import { useCart } from '../context/CartContext';
 
 const Navigation = () => {
     const { user, logout } = useAuth();
     const { getCartCount } = useCart();
-    const { language, setLanguage } = useLanguage();
+    const { language, setLanguage, t } = useLanguage();
+    const { products } = useData();
     const [searchTerm, setSearchTerm] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [searchSuggestions, setSearchSuggestions] = useState([]);
     const [activeSidebarCat, setActiveSidebarCat] = useState('Femme');
     const [showSidebarMenu, setShowSidebarMenu] = useState(false);
+    const [showMobileNav, setShowMobileNav] = useState(false);
     const navigate = useNavigate();
     const menuRef = useRef(null);
+    const [notifications, setNotifications] = useState([]);
+
+    const fetchHeaderNotifications = async () => {
+        if (!user?.id) return;
+        try {
+            const response = await authFetch(`${API_BASE_URL}/api/notifications/${user.id}`);
+            const data = await response.json();
+            if (data.success) {
+                setNotifications(data.notifications);
+            }
+        } catch (error) {
+            console.error("Failed to fetch notifications:", error);
+        }
+    };
+
+    useEffect(() => {
+        if (user) fetchHeaderNotifications();
+    }, [user?.id]);
+
+    const handleReadNotification = async (id) => {
+        try {
+            setNotifications(prev => prev.filter(n => n.id !== id));
+            await authFetch(`${API_BASE_URL}/api/notifications/${id}/read`, {
+                method: 'PUT'
+            });
+        } catch (error) {
+            console.error("Failed to mark notification as read:", error);
+        }
+    };
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -30,39 +64,70 @@ const Navigation = () => {
 
 
 
+    // Update search suggestions when typing
+    useEffect(() => {
+        if (!searchTerm.trim()) {
+            setSearchSuggestions([]);
+            return;
+        }
+
+        const term = searchTerm.toLowerCase();
+        const matches = products.filter(p =>
+            p.name?.toLowerCase().includes(term) ||
+            p.category?.toLowerCase().includes(term) ||
+            p.brand?.toLowerCase().includes(term)
+        );
+        setSearchSuggestions(matches);
+    }, [searchTerm, products]);
+
     const handleSearch = (e) => {
-        e.preventDefault();
-        // Placeholder pour la recherche réelle
+        if (e) e.preventDefault();
+        if (searchTerm.trim()) {
+            navigate(`/shop?search=${encodeURIComponent(searchTerm.trim())}`);
+            setSearchTerm('');
+            setShowMobileNav(false);
+        }
     };
 
     return (
         <header className="bg-white shadow-sm" style={{ zIndex: 1040 }}>
-
             {/* Main Header Row */}
+
             <div className="py-2">
                 <Container className="navbar-container">
-                    <Row className="align-items-center g-2">
-                        {/* Logo Column */}
-                        <Col lg={2} md={2} xs={6}>
+                    <Row className="align-items-center g-2 g-md-3">
+                        {/* Logo Only (Burger Removed) */}
+                        <Col xs="auto" className="d-flex align-items-center">
                             <Link to="/" className="text-dark text-decoration-none d-flex align-items-center">
-                                <h1 className="fw-bolder mb-0 text-dark" style={{ letterSpacing: '-1.5px', fontSize: '1.6rem' }}>
-                                    TRYMYDAY
+                                <h1 className="fw-bolder mb-0" style={{ letterSpacing: '-1.5px', fontSize: '1.2rem', color: '#ff6000' }}>
+                                    trymyday
                                 </h1>
                             </Link>
                         </Col>
 
-                        {/* Search Bar Column - Dominant & Expanded */}
-                        <Col lg={6} md={6} className="d-none d-md-block px-lg-3">
+                        {/* Search Bar Column - Desktop Only */}
+                        <Col lg={6} md={5} className="d-none d-md-block px-lg-3 position-relative" style={{ marginLeft: '100px' }}>
                             <Form onSubmit={handleSearch}>
-                                <div className="d-flex bg-light rounded-2 border p-1 search-wrapper transition-all">
+                                <div className="d-flex bg-light rounded-2 border p-1 search-wrapper transition-all position-relative">
                                     <Form.Control
                                         type="text"
-                                        placeholder="Que recherchez-vous aujourd'hui ?"
+                                        placeholder={t('nav.search_placeholder')}
                                         className="bg-transparent border-0 shadow-none px-3 py-1"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
+                                        onFocus={() => setShowSuggestions(true)}
+                                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                                         style={{ fontSize: '0.82rem' }}
                                     />
+                                    {searchTerm && (
+                                        <Button
+                                            variant="link"
+                                            className="p-0 border-0 text-muted me-2"
+                                            onClick={() => { setSearchTerm(''); setShowSuggestions(false); }}
+                                        >
+                                            <i className="bi bi-x-circle-fill"></i>
+                                        </Button>
+                                    )}
                                     <Button
                                         type="submit"
                                         className="border-0 px-4 rounded-2 transition-all d-flex align-items-center"
@@ -72,28 +137,70 @@ const Navigation = () => {
                                     </Button>
                                 </div>
                             </Form>
+
+                            {/* Search Suggestions Dropdown */}
+                            {showSuggestions && searchTerm.length > 1 && searchSuggestions.length > 0 && (
+                                <div className="position-absolute w-100 mt-1 bg-white border rounded-3 shadow-lg overflow-hidden" style={{ zIndex: 1050, left: 0, right: 0, margin: '0 15px' }}>
+                                    <ListGroup variant="flush">
+                                        <ListGroup.Item className="bg-light py-2 px-3 small fw-bold text-muted border-bottom">
+                                            {t('nav.suggestions')}
+                                        </ListGroup.Item>
+                                        {searchSuggestions.slice(0, 5).map(prod => (
+                                            <ListGroup.Item
+                                                key={prod.id}
+                                                action
+                                                onClick={() => {
+                                                    navigate(`/product/${prod.id}`);
+                                                    setSearchTerm('');
+                                                    setShowSuggestions(false);
+                                                }}
+                                                className="d-flex align-items-center gap-3 py-2 px-3 border-0"
+                                            >
+                                                <div className="rounded overflow-hidden border bg-white" style={{ width: '40px', height: '40px', flexShrink: 0 }}>
+                                                    <img src={prod.images?.[0] || prod.image || '/assets/placeholder.png'} alt={prod.name} className="w-100 h-100 object-fit-cover" />
+                                                </div>
+                                                <div className="flex-grow-1 overflow-hidden">
+                                                    <div className="text-truncate fw-medium small mb-0">{prod.name}</div>
+                                                    <div className="text-muted" style={{ fontSize: '0.65rem' }}>{prod.category}</div>
+                                                </div>
+                                                <div className="text-end" style={{ flexShrink: 0 }}>
+                                                    <div className="fw-bold text-dark" style={{ fontSize: '0.8rem' }}>{prod.price?.toLocaleString()} FCFA</div>
+                                                </div>
+                                            </ListGroup.Item>
+                                        ))}
+                                        <ListGroup.Item
+                                            action
+                                            onClick={handleSearch}
+                                            className="text-center py-2 text-primary fw-bold small border-top bg-light"
+                                        >
+                                            Voir tous les résultats pour "{searchTerm}"
+                                        </ListGroup.Item>
+                                    </ListGroup>
+                                </div>
+                            )}
                         </Col>
 
-                        {/* Action Column - Compact & Professional */}
-                        <Col lg={4} md={4} xs={6} className="d-flex justify-content-end align-items-center gap-1 gap-xl-2">
+                        {/* Action Column */}
+                        <Col className="d-flex justify-content-end align-items-center gap-2 gap-md-3 gap-xl-2 flex-grow-1">
 
                             {/* Profile Dropdown */}
                             {user ? (
                                 <NavDropdown
                                     align="end"
                                     title={
-                                        <div className="d-flex align-items-center action-item px-2 py-1 rounded-2 transition-all">
+                                        <div className="d-flex align-items-center action-item px-1 px-md-2 py-1 rounded-2 transition-all">
                                             <i className="bi bi-person fs-4 me-xl-1" style={{ color: '#ff6000' }}></i>
                                             <div className="d-none d-xl-flex flex-column text-start" style={{ lineHeight: '1' }}>
-                                                <span className="text-muted" style={{ fontSize: '0.5rem' }}>Bonjour,</span>
-                                                <span className="fw-bold text-dark" style={{ fontSize: '0.75rem' }}>{user.name.split(' ')[0]}</span>
+                                                <span className="text-muted" style={{ fontSize: '0.5rem' }}>{t('nav.hello')},</span>
+                                                <span className="fw-bold text-dark" style={{ fontSize: '0.75rem' }}>{user.name?.split(' ')[0] || user.email.split('@')[0]}</span>
                                             </div>
                                         </div>
                                     }
                                     id="user-dropdown"
-                                    className="custom-nav-dropdown border-0"
+                                    className="custom-nav-dropdown border-0 d-none d-md-block"
                                 >
                                     <NavDropdown.Item as={Link} to="/profile"><i className="bi bi-person-circle me-3 text-warning"></i> Mon Profil</NavDropdown.Item>
+
                                     {(user.role === 'admin' || user.role === 'manager' || user.role === 'expediteur') && (
                                         <NavDropdown.Item as={Link} to="/admin" className="fw-bold text-primary"><i className="bi bi-speedometer2 me-3"></i> Dashboard</NavDropdown.Item>
                                     )}
@@ -101,22 +208,29 @@ const Navigation = () => {
                                     <NavDropdown.Item onClick={logout} className="text-danger"><i className="bi bi-box-arrow-right me-3"></i> Déconnexion</NavDropdown.Item>
                                 </NavDropdown>
                             ) : (
-                                <Link to="/login" className="text-dark text-decoration-none d-flex align-items-center action-item px-2 py-1 transition-all">
+                                <Link to="/login" className="text-dark text-decoration-none d-none d-md-flex align-items-center action-item px-1 px-md-2 py-1 transition-all">
                                     <i className="bi bi-person fs-4 me-xl-1"></i>
-                                    <span className="d-none d-xl-inline fw-bold" style={{ fontSize: '0.75rem' }}>Connexion</span>
+                                    <span className="d-none d-xl-inline fw-bold" style={{ fontSize: '0.75rem' }}>{t('nav.login')}</span>
+                                </Link>
+                            )}
+
+                            {/* Mobile Dashboard Shortcut */}
+                            {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'expediteur') && (
+                                <Link to="/admin" className="d-md-none text-dark text-decoration-none action-item px-1 py-1 rounded-2 transition-all">
+                                    <i className="bi bi-speedometer2 fs-4" style={{ color: '#ff6000' }}></i>
                                 </Link>
                             )}
 
                             {/* Favorites Action */}
-                            <Link to="/favorites" className="text-dark text-decoration-none d-flex align-items-center action-item px-2 py-1 transition-all">
+                            <Link to="/favorites" className="text-dark text-decoration-none d-flex align-items-center action-item px-1 px-md-2 py-1 transition-all">
                                 <i className="bi bi-heart fs-4 me-xl-1 text-danger"></i>
-                                <span className="d-none d-xl-inline fw-bold" style={{ fontSize: '0.75rem' }}>Favoris</span>
+                                <span className="d-none d-xl-inline fw-bold" style={{ fontSize: '0.75rem' }}>{t('nav.favorites')}</span>
                             </Link>
 
-                            {/* Cart Action */}
-                            <Link to="/cart" className="text-dark text-decoration-none d-flex align-items-center action-item px-2 py-1 transition-all">
+                            {/* Cart Action (Desktop Only) */}
+                            <Link to="/cart" className="text-dark text-decoration-none d-none d-md-flex align-items-center action-item px-1 px-md-2 py-1 transition-all">
                                 <div className="position-relative me-xl-1">
-                                    <i className="bi bi-cart3 fs-5" style={{ color: '#ff6000' }}></i>
+                                    <i className="bi bi-cart3 fs-4 fs-md-5" style={{ color: '#ff6000' }}></i>
                                     <Badge
                                         bg="danger"
                                         pill
@@ -126,52 +240,184 @@ const Navigation = () => {
                                         {getCartCount()}
                                     </Badge>
                                 </div>
-                                <span className="d-none d-xl-inline fw-bold" style={{ fontSize: '0.75rem' }}>Panier</span>
+                                <span className="d-none d-xl-inline fw-bold" style={{ fontSize: '0.75rem' }}>{t('nav.cart')}</span>
                             </Link>
 
-                            {/* Language Selector */}
+                            {/* Mobile Notification Bell is now moved after the cart */}
+
+                            {/* Mobile Notification Bell */}
+                            <Link to="/notifications" className="d-md-none text-dark text-decoration-none position-relative d-flex align-items-center action-item px-1 py-1 rounded-2 transition-all">
+                                <i className="bi bi-bell fs-4" style={{ color: '#ff6000' }}></i>
+                                {notifications.length > 0 && (
+                                    <Badge
+                                        bg="danger"
+                                        pill
+                                        className="position-absolute top-0 start-100 translate-middle border border-1 border-white"
+                                        style={{ fontSize: '0.45rem', padding: '0.3em 0.4em' }}
+                                    >
+                                        {notifications.length}
+                                    </Badge>
+                                )}
+                            </Link>
+
+                            {/* Notification Bell */}
                             <NavDropdown
                                 align="end"
                                 title={
-                                    <div className="d-flex align-items-center action-item px-2 py-1 rounded-2 transition-all">
-                                        <i className="bi bi-translate fs-5 me-xl-1" style={{ color: '#ff6000' }}></i>
+                                    <div className="d-flex align-items-center action-item px-1 px-md-2 py-1 rounded-2 transition-all position-relative">
+                                        <i className="bi bi-bell fs-4" style={{ color: '#ff6000' }}></i>
+                                        {notifications.length > 0 && (
+                                            <Badge
+                                                bg="danger"
+                                                pill
+                                                className="position-absolute top-10 start-90 translate-middle-y border border-2 border-white"
+                                                style={{ fontSize: '0.45rem', padding: '0.3em 0.4em' }}
+                                            >
+                                                {notifications.length}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                }
+                                id="notification-dropdown"
+                                className="custom-nav-dropdown border-0 d-none d-md-block"
+                                onToggle={(isOpen) => {
+                                    if (isOpen) fetchHeaderNotifications();
+                                }}
+                            >
+                                <div className="px-3 py-2 border-bottom fw-bold small text-muted text-uppercase" style={{ letterSpacing: '0.5px' }}>
+                                    {t('nav.notifications')}
+                                </div>
+                                <div style={{ maxHeight: '350px', overflowY: 'auto', width: '300px' }}>
+                                    {notifications.length === 0 ? (
+                                        <div className="p-4 text-center text-muted small">Aucune nouvelle notification</div>
+                                    ) : (
+                                        notifications.map(notif => (
+                                            <NavDropdown.Item
+                                                key={notif.id}
+                                                className="d-flex align-items-start gap-3 py-3 border-bottom px-3"
+                                                style={{ whiteSpace: 'normal' }}
+                                                onClick={() => handleReadNotification(notif.id)}
+                                            >
+                                                <div className="rounded-circle d-flex align-items-center justify-content-center bg-light" style={{ width: '40px', height: '40px', flexShrink: 0 }}>
+                                                    <i className={`bi ${notif.type === 'order' ? 'bi-truck' : 'bi-tag'} fs-5`} style={{ color: '#ff6000' }}></i>
+                                                </div>
+                                                <div className="flex-grow-1">
+                                                    <div className="fw-bold small mb-1">{notif.title}</div>
+                                                    <div className="text-muted" style={{ fontSize: '0.75rem' }}>{notif.message}</div>
+                                                    <div className="text-muted mt-1" style={{ fontSize: '0.65rem' }}>
+                                                        {new Date(notif.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </div>
+                                                </div>
+                                            </NavDropdown.Item>
+                                        ))
+                                    )}
+                                </div>
+                                <NavDropdown.Item as={Link} to="/notifications" className="text-center small py-2 fw-bold border-top" style={{ color: '#ff6000' }}>
+                                    {t('common.view_all')}
+                                </NavDropdown.Item>
+                            </NavDropdown>
+
+                            {/* Language Selector - Desktop Only */}
+                            <NavDropdown
+                                align="end"
+                                title={
+                                    <div className="d-flex align-items-center action-item px-1 px-md-2 py-1 rounded-2 transition-all">
+                                        <i className="bi bi-translate fs-4 fs-md-5" style={{ color: '#ff6000' }}></i>
                                         <span className="fw-bold text-dark d-none d-xl-inline" style={{ fontSize: '0.75rem' }}>{language}</span>
                                     </div>
                                 }
                                 id="language-dropdown"
-                                className="custom-nav-dropdown border-0"
+                                className="custom-nav-dropdown border-0 d-flex"
                             >
-                                <NavDropdown.Item className="small" onClick={() => setLanguage('FR')}><span className="me-2">🇫🇷</span> FR - Français</NavDropdown.Item>
-                                <NavDropdown.Item className="small" onClick={() => setLanguage('EN')}><span className="me-2">🇺🇸</span> EN - English</NavDropdown.Item>
-                                <NavDropdown.Item className="small" onClick={() => setLanguage('TR')}><span className="me-2">🇹🇷</span> TR - Türkçe</NavDropdown.Item>
-                                <NavDropdown.Item className="small" onClick={() => setLanguage('AR')}><span className="me-2">🇸🇦</span> AR - العربية</NavDropdown.Item>
+                                <NavDropdown.Item className="small" onClick={() => setLanguage('FR')}><span className="me-2">🇫🇷</span> FR</NavDropdown.Item>
+                                <NavDropdown.Item className="small" onClick={() => setLanguage('EN')}><span className="me-2">🇺🇸</span> EN</NavDropdown.Item>
+                                <NavDropdown.Item className="small" onClick={() => setLanguage('AR')}><span className="me-2">🇸🇦</span> AR</NavDropdown.Item>
                             </NavDropdown>
 
-                            {/* Help Assistant - Far Right */}
-                            <Link to="/help" className="text-dark text-decoration-none d-flex align-items-center action-item px-2 py-1 transition-all rounded-2">
-                                <i className="bi bi-telephone fs-4" style={{ color: '#ff6000' }}></i>
+                            {/* Help Assistant */}
+                            <Link to="/help" className="text-dark text-decoration-none d-flex align-items-center action-item px-1 px-md-2 py-1 transition-all rounded-2">
+                                <i className="bi bi-question-circle fs-4" style={{ color: '#ff6000' }}></i>
                             </Link>
 
                         </Col>
                     </Row>
 
-                    {/* Mobile Search Bar (visible only below md) */}
-                    <div className="d-md-none mt-3">
+                    {/* Mobile Search Bar */}
+                    <div className="d-md-none mt-2 position-relative">
                         <Form onSubmit={handleSearch}>
-                            <InputGroup>
+                            <div className="d-flex bg-light rounded-2 border p-1 border-secondary-subtle">
                                 <Form.Control
                                     type="text"
-                                    placeholder="Que recherchez-vous ?"
-                                    className="bg-light border-0"
+                                    placeholder={t('nav.search_placeholder')}
+                                    className="bg-transparent border-0 shadow-none px-3"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
+                                    onFocus={() => setShowSuggestions(true)}
+                                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                    style={{ fontSize: '0.85rem' }}
                                 />
-                                <Button variant="warning" type="submit"><i className="bi bi-search"></i></Button>
-                            </InputGroup>
+                                {searchTerm && (
+                                    <Button
+                                        variant="link"
+                                        className="p-0 border-0 text-muted me-2"
+                                        onClick={() => { setSearchTerm(''); setShowSuggestions(false); }}
+                                    >
+                                        <i className="bi bi-x-circle-fill"></i>
+                                    </Button>
+                                )}
+                                <Button
+                                    type="submit"
+                                    variant="link"
+                                    className="text-dark p-0 px-2"
+                                >
+                                    <i className="bi bi-search"></i>
+                                </Button>
+                            </div>
                         </Form>
+                        {/* Mobile Search Suggestions */}
+                        {showSuggestions && searchTerm.length > 1 && searchSuggestions.length > 0 && (
+                            <div className="position-absolute w-100 mt-1 bg-white border rounded-3 shadow-lg overflow-hidden" style={{ zIndex: 1050, left: 0, right: 0 }}>
+                                <ListGroup variant="flush">
+                                    <ListGroup.Item className="bg-light py-2 px-3 small fw-bold text-muted border-bottom">
+                                        {t('nav.suggestions')}
+                                    </ListGroup.Item>
+                                    {searchSuggestions.slice(0, 5).map(prod => (
+                                        <ListGroup.Item
+                                            key={prod.id}
+                                            action
+                                            onClick={() => {
+                                                navigate(`/product/${prod.id}`);
+                                                setSearchTerm('');
+                                                setShowSuggestions(false);
+                                            }}
+                                            className="d-flex align-items-center gap-3 py-2 px-3 border-0"
+                                        >
+                                            <div className="rounded overflow-hidden border bg-white" style={{ width: '40px', height: '40px', flexShrink: 0 }}>
+                                                <img src={prod.images?.[0] || prod.image || '/assets/placeholder.png'} alt={prod.name} className="w-100 h-100 object-fit-cover" />
+                                            </div>
+                                            <div className="flex-grow-1 overflow-hidden">
+                                                <div className="text-truncate fw-medium small mb-0">{prod.name}</div>
+                                                <div className="text-muted" style={{ fontSize: '0.65rem' }}>{prod.category}</div>
+                                            </div>
+                                            <div className="text-end" style={{ flexShrink: 0 }}>
+                                                <div className="fw-bold text-dark" style={{ fontSize: '0.8rem' }}>{prod.price?.toLocaleString()} FCFA</div>
+                                            </div>
+                                        </ListGroup.Item>
+                                    ))}
+                                    <ListGroup.Item
+                                        action
+                                        onClick={handleSearch}
+                                        className="text-center py-2 text-primary fw-bold small border-top bg-light"
+                                    >
+                                        Voir tous les résultats pour "{searchTerm}"
+                                    </ListGroup.Item>
+                                </ListGroup>
+                            </div>
+                        )}
                     </div>
                 </Container>
             </div>
+
 
             {/* Category Navigation Bar */}
             <div className="border-bottom bg-white d-none d-lg-block position-relative" style={{ margin: 0, padding: 0 }} ref={menuRef}>
@@ -184,31 +430,31 @@ const Navigation = () => {
                             style={{ cursor: 'pointer' }}
                         >
                             <i className="bi bi-list fs-6 me-2"></i>
-                            <span className="fw-bold small">TOUTES LES CATÉGORIES</span>
+                            <span className="fw-bold small">{t('nav.all_categories').toUpperCase()}</span>
                         </div>
 
                         {/* Standard Nav Links */}
                         <Link to="/shop?sort=new" className="nav-link-item py-2 px-3 text-uppercase small fw-bold text-dark text-decoration-none">
-                            NOUVEAUTÉS
+                            {t('nav.new_arrivals')}
                         </Link>
                         <Link to="/shop" className="nav-link-item py-2 px-3 text-uppercase small fw-bold text-dark text-decoration-none">
-                            MARQUES
+                            {t('nav.brands')}
                         </Link>
                         <Link to="/shop?cat=Gifts" className="nav-link-item py-2 px-3 text-uppercase small fw-bold text-dark text-decoration-none">
-                            IDÉES CADEAUX
+                            {t('nav.gift_ideas')}
                         </Link>
                         <Link to="/shop?cat=Collections" className="nav-link-item py-2 px-3 text-uppercase small fw-bold text-dark text-decoration-none">
-                            COLLECTIONS
+                            {t('nav.collections')}
                         </Link>
                         <Link to="/shop?cat=Favorites" className="nav-link-item py-2 px-3 text-uppercase small fw-bold text-dark text-decoration-none">
-                            COUPS DE CŒUR
+                            {t('nav.favorites')}
                         </Link>
-                        <Link to="/shop?cat=Flash" className="nav-link-item py-2 px-3 text-uppercase small fw-bold text-decoration-none" style={{ color: '#7b1fad' }}>
-                            <i className="bi bi-lightning-fill me-1"></i> OFFRES FLASH
+                        <Link to="/shop?cat=Flash" className="nav-link-item py-2 px-3 text-uppercase small fw-bold text-decoration-none" style={{ color: '#ff6000' }}>
+                            <i className="bi bi-lightning-fill me-1"></i> {t('nav.flash').toUpperCase()}
                         </Link>
                         {/* Quick links for common categories */}
                         <Link to="/shop?cat=Best" className="nav-link-item py-2 px-3 text-uppercase small fw-bold text-danger text-decoration-none">
-                            <i className="bi bi-fire me-1"></i> MEILLEURES VENTES
+                            <i className="bi bi-fire me-1"></i> {t('nav.best_sellers').toUpperCase()}
                         </Link>
                     </Nav>
 
@@ -270,7 +516,7 @@ const Navigation = () => {
                         </div>
                     </Container>
                 </div>
-            </div>
+            </div >
 
             <style>{`
                 .hover-orange:hover {
@@ -387,3 +633,16 @@ const Navigation = () => {
 };
 
 export default Navigation;
+
+
+// Auto-Injected fetch wrapper for JWT
+const authFetch = async (url, options = {}) => {
+    const token = localStorage.getItem('token');
+    if (token && url.includes('/api/')) {
+        options.headers = {
+            ...options.headers,
+            'Authorization': 'Bearer ' + token,
+        };
+    }
+    return fetch(url, options);
+};

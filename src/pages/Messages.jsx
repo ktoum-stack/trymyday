@@ -1,12 +1,16 @@
 import { Card, Button, Row, Col, Form, Badge, ListGroup } from 'react-bootstrap';
 import { useState } from 'react';
+import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import ProfileLayout from '../components/ProfileLayout';
+import { useLanguage } from '../context/LanguageContext';
 
 const Messages = () => {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const navigate = useNavigate();
+    const { t } = useLanguage();
 
     // Mock conversations
     const [conversations] = useState([
@@ -57,7 +61,7 @@ const Messages = () => {
         if (!newMessage.trim()) return;
 
         // In a real app, this would send the message to the backend
-        alert('Message envoyé : ' + newMessage);
+        showToast(t('messages.send_success'), 'success');
         setNewMessage('');
     };
 
@@ -67,13 +71,13 @@ const Messages = () => {
         const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
 
         if (diffDays === 0) {
-            return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
         } else if (diffDays === 1) {
-            return 'Hier';
+            return t('messages.yesterday');
         } else if (diffDays < 7) {
-            return `Il y a ${diffDays} jours`;
+            return t('messages.days_ago').replace('{days}', diffDays);
         } else {
-            return date.toLocaleDateString('fr-FR');
+            return date.toLocaleDateString();
         }
     };
 
@@ -81,15 +85,15 @@ const Messages = () => {
         return (
             <ProfileLayout>
                 <div className="mb-4">
-                    <h3 className="fw-bold">Messages vendeur</h3>
-                    <p className="text-muted">Communiquez avec les vendeurs</p>
+                    <h3 className="fw-bold">{t('messages.title')}</h3>
+                    <p className="text-muted">{t('messages.subtitle')}</p>
                 </div>
                 <Card className="border-0 shadow-sm text-center p-5">
                     <i className="bi bi-person-x" style={{ fontSize: '4rem', color: '#ddd' }}></i>
-                    <h5 className="mt-3">Connexion requise</h5>
-                    <p className="text-muted">Connectez-vous pour voir vos messages</p>
+                    <h5 className="mt-3">{t('messages.login_required')}</h5>
+                    <p className="text-muted">{t('messages.login_msg')}</p>
                     <Button variant="warning" className="text-white mt-2" onClick={() => navigate('/login')}>
-                        Se connecter
+                        {t('messages.login_btn')}
                     </Button>
                 </Card>
             </ProfileLayout>
@@ -99,8 +103,8 @@ const Messages = () => {
     return (
         <ProfileLayout>
             <div className="mb-4">
-                <h3 className="fw-bold">Messages vendeur</h3>
-                <p className="text-muted">Communiquez avec les vendeurs</p>
+                <h3 className="fw-bold">{t('messages.title')}</h3>
+                <p className="text-muted">{t('messages.subtitle')}</p>
             </div>
 
             <Row>
@@ -108,13 +112,13 @@ const Messages = () => {
                 <Col md={4}>
                     <Card className="border-0 shadow-sm" style={{ height: '600px', overflowY: 'auto' }}>
                         <Card.Header className="bg-white border-bottom">
-                            <h6 className="mb-0 fw-bold">Conversations</h6>
+                            <h6 className="mb-0 fw-bold">{t('messages.conversations')}</h6>
                         </Card.Header>
                         <ListGroup variant="flush">
                             {conversations.length === 0 ? (
                                 <div className="text-center p-4">
                                     <i className="bi bi-chat-dots" style={{ fontSize: '3rem', color: '#ddd' }}></i>
-                                    <p className="text-muted mt-3 mb-0">Aucune conversation</p>
+                                    <p className="text-muted mt-3 mb-0">{t('messages.no_conversations')}</p>
                                 </div>
                             ) : (
                                 conversations.map(conv => (
@@ -176,14 +180,14 @@ const Messages = () => {
                                     >
                                         <div
                                             className={`p-3 rounded ${msg.sender === 'user'
-                                                    ? 'bg-warning text-white'
-                                                    : 'bg-light'
+                                                ? 'bg-warning text-white'
+                                                : 'bg-light'
                                                 }`}
                                             style={{ maxWidth: '70%' }}
                                         >
                                             <p className="mb-1">{msg.text}</p>
                                             <small className={msg.sender === 'user' ? 'text-white-50' : 'text-muted'}>
-                                                {new Date(msg.time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                                {new Date(msg.time).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                                             </small>
                                         </div>
                                     </div>
@@ -196,7 +200,7 @@ const Messages = () => {
                                     <div className="d-flex gap-2">
                                         <Form.Control
                                             type="text"
-                                            placeholder="Tapez votre message..."
+                                            placeholder={t('messages.input_placeholder')}
                                             value={newMessage}
                                             onChange={(e) => setNewMessage(e.target.value)}
                                         />
@@ -211,8 +215,8 @@ const Messages = () => {
                         <Card className="border-0 shadow-sm text-center p-5" style={{ height: '600px' }}>
                             <div className="d-flex flex-column align-items-center justify-content-center h-100">
                                 <i className="bi bi-chat-text" style={{ fontSize: '5rem', color: '#ddd' }}></i>
-                                <h5 className="mt-4 text-muted">Sélectionnez une conversation</h5>
-                                <p className="text-muted">Choisissez un vendeur pour commencer à discuter</p>
+                                <h5 className="mt-4 text-muted">{t('messages.select_conv')}</h5>
+                                <p className="text-muted">{t('messages.select_conv_msg')}</p>
                             </div>
                         </Card>
                     )}

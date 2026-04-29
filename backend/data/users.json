@@ -5,7 +5,7 @@
       "name": "Trymyday",
       "email": "trymyday235@gmail.com",
       "role": "admin",
-      "walletBalance": 25299,
+      "walletBalance": 20299,
       "joined": "2025-12-25",
       "transactions": [
         {
@@ -151,8 +151,202 @@
           "date": "2026-01-06T21:18:12.960Z",
           "description": "Crédit admin",
           "balanceAfter": 25299
+        },
+        {
+          "id": "tx_1776624916437",
+          "type": "debit",
+          "amount": 5000,
+          "date": "2026-04-19T18:55:16.437Z",
+          "description": "Order payment order_1776624916429",
+          "balanceAfter": 20299
         }
       ]
+    },
+    {
+      "id": "51442403",
+      "name": "souma",
+      "email": "soumamoussa134@gmail.com",
+      "password": "123",
+      "role": "client",
+      "walletBalance": 154000,
+      "joined": "2026-03-05",
+      "transactions": [
+        {
+          "id": "tx_1772750618053",
+          "type": "credit",
+          "amount": 500000,
+          "date": "2026-03-05T22:43:38.053Z",
+          "description": "Virement TRYMYDAY",
+          "balanceAfter": 500000
+        },
+        {
+          "id": "refund_1772750861061",
+          "type": "credit",
+          "amount": 59000,
+          "date": "2026-03-05T22:47:41.061Z",
+          "description": "Remboursement Commande #order_1772750786014",
+          "balanceAfter": 559000
+        },
+        {
+          "id": "refund_1772750876325",
+          "type": "credit",
+          "amount": 59000,
+          "date": "2026-03-05T22:47:56.325Z",
+          "description": "Remboursement Commande #order_1772750786014",
+          "balanceAfter": 618000
+        },
+        {
+          "id": "refund_1772751359570",
+          "type": "credit",
+          "amount": 59000,
+          "date": "2026-03-05T22:55:59.570Z",
+          "description": "Remboursement Commande #order_1772750786014",
+          "balanceAfter": 677000
+        },
+        {
+          "id": "refund_1772819606395",
+          "type": "credit",
+          "amount": 59000,
+          "date": "2026-03-06T17:53:26.395Z",
+          "description": "Remboursement Commande #order_1772818371976",
+          "balanceAfter": 736000
+        },
+        {
+          "id": "tx_1772821184311",
+          "type": "debit",
+          "amount": 59000,
+          "date": "2026-03-06T18:19:44.311Z",
+          "description": "Order payment order_1772821184289",
+          "balanceAfter": 677000
+        },
+        {
+          "id": "tx_1772823593107",
+          "type": "debit",
+          "amount": 59000,
+          "date": "2026-03-06T18:59:53.107Z",
+          "description": "Order payment order_1772823593087",
+          "balanceAfter": 618000
+        },
+        {
+          "id": "refund_1772823651845",
+          "type": "credit",
+          "amount": 59000,
+          "date": "2026-03-06T19:00:51.845Z",
+          "description": "Remboursement Commande #order_1772823593087",
+          "balanceAfter": 677000
+        },
+        {
+          "id": "tx_1772827538525",
+          "type": "debit",
+          "amount": 126000,
+          "date": "2026-03-06T20:05:38.525Z",
+          "description": "Order payment order_1772827538501",
+          "balanceAfter": 551000
+        },
+        {
+          "id": "tx_1772827930267",
+          "type": "debit",
+          "amount": 126000,
+          "date": "2026-03-06T20:12:10.267Z",
+          "description": "Order payment order_1772827930258",
+          "balanceAfter": 425000
+        },
+        {
+          "id": "tx_1772828632392",
+          "type": "debit",
+          "amount": 266000,
+          "date": "2026-03-06T20:23:52.392Z",
+          "description": "Order payment order_1772828632387",
+          "balanceAfter": 159000
+        },
+        {
+          "id": "tx_1774673348483",
+          "type": "debit",
+          "amount": 5000,
+          "date": "2026-03-28T04:49:08.483Z",
+          "description": "Order payment order_1774673348476",
+          "balanceAfter": 154000
+        }
+      ]
+    },
+    {
+      "id": "99999999",
+      "name": "Test Manager",
+      "email": "manager@test.com",
+      "password": "123",
+      "role": "manager",
+      "walletBalance": 100000,
+      "joined": "2026-03-12",
+      "transactions": []
+    },
+    {
+      "id": "88888888",
+      "name": "Test Expediteur",
+      "email": "expediteur@test.com",
+      "password": "123",
+      "role": "expediteur",
+      "walletBalance": 0,
+      "joined": "2026-03-12",
+      "transactions": []
+    },
+    {
+      "id": "96110021",
+      "name": "kaltouma",
+      "email": "kaltoumamoussamahamat@gmail.com",
+      "password": "$2b$10$IN6gSiNyW19bF4kK1EG3ce6krl5PZkDjV4Mjy.EE5TvpRLRX9XdhS",
+      "role": "client",
+      "walletBalance": 100000,
+      "joined": "2026-04-04",
+      "transactions": [
+        {
+          "id": "tx_1776624850868",
+          "type": "credit",
+          "amount": 100000,
+          "date": "2026-04-19T18:54:10.869Z",
+          "description": "Virement TRYMYDAY",
+          "balanceAfter": 100000
+        }
+      ]
+    },
+    {
+      "id": "11111111",
+      "name": "Admin",
+      "email": "admin@trymyday.com",
+      "password": "$2b$10$pajAmRDwboKaAKP1Sax4q.Pzc5.QcWLRjcpRPHIkeCuIp2RpjQtcC",
+      "role": "admin",
+      "walletBalance": 0,
+      "joined": "2026-04-24",
+      "transactions": []
+    },
+    {
+      "id": "22222222",
+      "name": "Manager",
+      "email": "manager@trymyday.com",
+      "password": "Manager@TryMyDay2026!",
+      "role": "manager",
+      "walletBalance": 0,
+      "joined": "2026-04-24",
+      "transactions": []
+    },
+    {
+      "id": "33333333",
+      "name": "Distributor",
+      "email": "distributor@trymyday.com",
+      "password": "Distrib@TryMyDay2026!",
+      "role": "expediteur",
+      "walletBalance": 0,
+      "joined": "2026-04-24",
+      "transactions": []
+    },
+    {
+      "id": "13415422",
+      "name": "souma",
+      "email": "soumamoussa123@gmail.com",
+      "password": "$2b$10$xGOyaKHxoUY8ABoUs5IKFuSBlsTqm2kh53sKUq1.uTq8O.vyLGIDi",
+      "role": "client",
+      "walletBalance": 0,
+      "joined": "2026-04-26",
+      "transactions": []
     }
   ]
 }

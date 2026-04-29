@@ -4,11 +4,24 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import ProfileLayout from '../components/ProfileLayout';
+import { useLanguage } from '../context/LanguageContext';
 
 const Orders = () => {
     const { user } = useAuth();
     const { orders } = useData();
     const navigate = useNavigate();
+    const { t } = useLanguage();
+
+    const getStatusLabel = (status) => {
+        if (status === 'Livrée') return t('orders.status_delivered');
+        if (status === 'Complétée') return t('orders.status_completed');
+        if (status === 'Annulée') return t('orders.status_cancelled');
+        if (status === 'En expédition') return t('orders.status_shipping');
+        if (status === 'En attente') return t('orders.status_pending');
+        if (status === 'En cours') return t('orders.status_processing');
+        if (status === "Demande d'annulation") return t('orders.status_cancel_request');
+        return status;
+    };
 
     // Filter orders by user email
     const userOrders = orders.filter(order => order.email === user?.email);
@@ -25,26 +38,28 @@ const Orders = () => {
     if (!user) {
         return (
             <Container className="py-5 text-center">
-                <h3>Veuillez vous connecter pour voir vos commandes</h3>
-                <Link to="/login" className="btn btn-primary mt-3">Se connecter</Link>
+                <h3>{t('profile.login_prompt')}</h3>
+                <Link to="/login" state={{ from: '/profile/orders' }} className="btn btn-warning text-white rounded-pill px-5 fw-bold shadow-sm">
+                    {t('auth.login_btn')}
+                </Link>
             </Container>
         );
     }
 
     return (
         <ProfileLayout>
-            <div className="mb-4">
-                <h3 className="fw-bold">Mes commandes</h3>
-                <p className="text-muted mb-0">Suivez vos commandes en cours et consultez votre historique</p>
+            <div className="mb-3 pt-1">
+                <h5 className="fw-bolder mb-0 text-dark">{t('orders.title')}</h5>
+                <p className="text-muted mb-0" style={{ fontSize: '0.75rem' }}>{t('orders.subtitle')}</p>
             </div>
 
             {userOrders.length === 0 ? (
                 <Card className="shadow-sm border-0 text-center p-5">
                     <i className="bi bi-box-seam" style={{ fontSize: '5rem', color: '#ddd' }}></i>
-                    <h4 className="mt-4 text-muted">Aucune commande</h4>
-                    <p className="text-muted">Vous n'avez pas encore passé de commande</p>
+                    <h4 className="mt-4 text-muted">{t('orders.no_orders')}</h4>
+                    <p className="text-muted">{t('orders.no_orders_msg')}</p>
                     <Button variant="warning" className="text-white mt-3" onClick={() => navigate('/shop')}>
-                        Découvrir la boutique
+                        {t('orders.view_shop')}
                     </Button>
                 </Card>
             ) : (
@@ -54,10 +69,10 @@ const Orders = () => {
                         <Card className="shadow-sm border-0 mb-4">
                             <Card.Header className="bg-white border-bottom p-3">
                                 <div className="d-flex justify-content-between align-items-center">
-                                    <h5 className="mb-0 fw-bold">
+                                    <h6 className="mb-0 fw-bold">
                                         <i className="bi bi-clock-history text-warning me-2"></i>
-                                        Commandes en cours
-                                    </h5>
+                                        {t('orders.active_orders')}
+                                    </h6>
                                     <Badge bg="warning" text="dark">
                                         {userOrders.filter(order => order.status !== 'Livrée' && order.status !== 'Annulée').length}
                                     </Badge>
@@ -66,48 +81,30 @@ const Orders = () => {
                             <Card.Body className="p-0">
                                 <ListGroup variant="flush">
                                     {userOrders.filter(order => order.status !== 'Livrée' && order.status !== 'Annulée').map(order => (
-                                        <ListGroup.Item key={order.id} className="p-4">
-                                            <Row className="align-items-center">
-                                                <Col md={2}>
-                                                    <div className="text-center">
-                                                        <i className={`${getStatusIcon(order.status)} mb-2`} style={{ fontSize: '2rem' }}></i>
-                                                        <h6 className="mb-0">#{order.id}</h6>
-                                                        <small className="text-muted">{order.date}</small>
+                                        <ListGroup.Item key={order.id} className="hover-bg-light transition-all cursor-pointer border-bottom px-3 py-2 bg-white" onClick={() => navigate(`/profile/orders/${order.id}`)}>
+                                            <div className="d-flex align-items-start justify-content-between">
+                                                <div className="d-flex flex-column">
+                                                    <div className="d-flex align-items-center gap-2 mb-1">
+                                                        <i className={`${getStatusIcon(order.status)} font-size-sm`}></i>
+                                                        <span className="fw-bold text-dark" style={{ fontSize: '0.85rem' }}>{t('orders.order_prefix')}{order.id.substring(0, 6)}</span>
                                                     </div>
-                                                </Col>
-                                                <Col md={3}>
-                                                    <small className="text-muted d-block">Client</small>
-                                                    <strong>{order.customerName}</strong>
-                                                </Col>
-                                                <Col md={2}>
-                                                    <small className="text-muted d-block">Articles</small>
-                                                    <strong>{order.items?.length || 0} article(s)</strong>
-                                                </Col>
-                                                <Col md={2}>
-                                                    <small className="text-muted d-block">Montant</small>
-                                                    <strong className="text-success">{order.total.toLocaleString()} FCFA</strong>
-                                                </Col>
-                                                <Col md={2}>
+                                                    <div className="text-muted" style={{ fontSize: '0.7rem' }}>
+                                                        {order.date} • {order.items?.length || 0} {t('orders.items_suffix')}
+                                                    </div>
+                                                </div>
+                                                <div className="text-end">
+                                                    <div className="fw-bolder text-dark mb-1" style={{ fontSize: '0.9rem' }}>{order.total.toLocaleString()} FCFA</div>
                                                     <Badge bg={
                                                         order.status === 'En expédition' ? 'info' :
                                                             order.status === 'En cours' ? 'warning' :
                                                                 order.status === 'En attente' ? 'secondary' :
                                                                     order.status === "Demande d'annulation" ? 'warning' :
                                                                         order.status === 'Annulée' ? 'danger' : 'primary'
-                                                    } className="w-100 py-2">
-                                                        {order.status}
+                                                    } className="py-1 px-2 border-0" style={{ fontSize: '0.65rem', borderRadius: '4px' }}>
+                                                        {getStatusLabel(order.status)}
                                                     </Badge>
-                                                </Col>
-                                                <Col md={1}>
-                                                    <Button
-                                                        variant="outline-warning"
-                                                        size="sm"
-                                                        onClick={() => navigate(`/profile/orders/${order.id}`)}
-                                                    >
-                                                        <i className="bi bi-eye"></i>
-                                                    </Button>
-                                                </Col>
-                                            </Row>
+                                                </div>
+                                            </div>
                                         </ListGroup.Item>
                                     ))}
                                 </ListGroup>
@@ -120,10 +117,10 @@ const Orders = () => {
                         <Card className="shadow-sm border-0">
                             <Card.Header className="bg-white border-bottom p-3">
                                 <div className="d-flex justify-content-between align-items-center">
-                                    <h5 className="mb-0 fw-bold">
+                                    <h6 className="mb-0 fw-bold">
                                         <i className="bi bi-clock-history text-secondary me-2"></i>
-                                        Historique des commandes
-                                    </h5>
+                                        {t('orders.order_history')}
+                                    </h6>
                                     <Badge bg="secondary">
                                         {userOrders.filter(order => order.status === 'Livrée' || order.status === 'Annulée').length}
                                     </Badge>
@@ -132,42 +129,24 @@ const Orders = () => {
                             <Card.Body className="p-0">
                                 <ListGroup variant="flush">
                                     {userOrders.filter(order => order.status === 'Livrée' || order.status === 'Annulée').map(order => (
-                                        <ListGroup.Item key={order.id} className="p-4 bg-light bg-opacity-50">
-                                            <Row className="align-items-center">
-                                                <Col md={2}>
-                                                    <div className="text-center">
-                                                        <i className="bi bi-check-circle-fill text-success mb-2" style={{ fontSize: '2rem' }}></i>
-                                                        <h6 className="mb-0">#{order.id}</h6>
-                                                        <small className="text-muted">{order.date}</small>
+                                        <ListGroup.Item key={order.id} className="hover-bg-light transition-all cursor-pointer border-bottom px-3 py-2 bg-light bg-opacity-25" onClick={() => navigate(`/profile/orders/${order.id}`)}>
+                                            <div className="d-flex align-items-start justify-content-between">
+                                                <div className="d-flex flex-column">
+                                                    <div className="d-flex align-items-center gap-2 mb-1">
+                                                        <i className={`font-size-sm ${order.status === 'Annulée' ? 'bi bi-x-circle-fill text-danger' : 'bi bi-check-circle-fill text-success'}`}></i>
+                                                        <span className="fw-bold text-dark" style={{ fontSize: '0.85rem' }}>{t('orders.order_prefix')}{order.id.substring(0, 6)}</span>
                                                     </div>
-                                                </Col>
-                                                <Col md={3}>
-                                                    <small className="text-muted d-block">Client</small>
-                                                    <strong>{order.customerName}</strong>
-                                                </Col>
-                                                <Col md={2}>
-                                                    <small className="text-muted d-block">Articles</small>
-                                                    <strong>{order.items?.length || 0} article(s)</strong>
-                                                </Col>
-                                                <Col md={2}>
-                                                    <small className="text-muted d-block">Montant</small>
-                                                    <strong className="text-success">{order.total.toLocaleString()} FCFA</strong>
-                                                </Col>
-                                                <Col md={2}>
-                                                    <Badge bg="success" className="w-100 py-2">
-                                                        Livrée
+                                                    <div className="text-muted" style={{ fontSize: '0.7rem' }}>
+                                                        {order.date} • {order.items?.length || 0} {t('orders.art_suffix')}
+                                                    </div>
+                                                </div>
+                                                <div className="text-end">
+                                                    <div className="fw-bolder text-dark mb-1" style={{ fontSize: '0.9rem' }}>{order.total.toLocaleString()} FCFA</div>
+                                                    <Badge bg={order.status === 'Annulée' ? 'danger' : 'success'} className="py-1 px-2 border-0" style={{ fontSize: '0.65rem', borderRadius: '4px' }}>
+                                                        {getStatusLabel(order.status)}
                                                     </Badge>
-                                                </Col>
-                                                <Col md={1}>
-                                                    <Button
-                                                        variant="outline-success"
-                                                        size="sm"
-                                                        onClick={() => navigate(`/profile/orders/${order.id}`)}
-                                                    >
-                                                        <i className="bi bi-eye"></i>
-                                                    </Button>
-                                                </Col>
-                                            </Row>
+                                                </div>
+                                            </div>
                                         </ListGroup.Item>
                                     ))}
                                 </ListGroup>

@@ -1,0 +1,19 @@
+{
+  "appId": "com.trymyday.app",
+  "appName": "TryMyDay",
+  "webDir": "dist",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 3000,
+      "launchAutoHide": true,
+      "backgroundColor": "#FF7A00",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": true,
+      "androidSpinnerStyle": "large",
+      "spinnerColor": "#FFFFFF",
+      "splashFullScreen": true,
+      "splashImmersive": true
+    }
+  }
+}

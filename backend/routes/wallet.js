@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs').promises;
 const path = require('path');
+const { authMiddleware } = require('../middleware/authMiddleware');
 const { sendEmail, emailTemplates } = require('../utils/emailService');
 
 const USERS_FILE = path.join(__dirname, '../data/users.json');
@@ -41,9 +42,9 @@ async function findOrCreateUser(email) {
 }
 
 // GET /api/wallet/balance - Get user wallet balance
-router.get('/balance', async (req, res) => {
+router.get('/balance', authMiddleware, async (req, res) => {
     try {
-        const { email } = req.query;
+        const email = req.user.email; // Get email from JWT, NOT req.query
 
         if (!email) {
             return res.status(400).json({ success: false, message: 'Email required' });
@@ -62,11 +63,13 @@ router.get('/balance', async (req, res) => {
 });
 
 // POST /api/wallet/pay - Pay with wallet balance
-router.post('/pay', async (req, res) => {
+router.post('/pay', authMiddleware, async (req, res) => {
     try {
-        const { email, amount, orderId } = req.body;
+        const { amount, orderId } = req.body; const email = req.user.email;
+        console.log(`💰 PAY REQUEST: email=${email}, amount=${amount}, orderId=${orderId}`);
 
         if (!email || !amount) {
+            console.error('❌ Missing email or amount');
             return res.status(400).json({ success: false, message: 'Email and amount required' });
         }
 
@@ -74,12 +77,15 @@ router.post('/pay', async (req, res) => {
         const userIndex = users.findIndex(u => u.email === email);
 
         if (userIndex === -1) {
+            console.error(`❌ User not found: ${email}`);
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
         const user = users[userIndex];
+        console.log(`👤 User found: ${user.email}, balance=${user.walletBalance}`);
 
         if (user.walletBalance < amount) {
+            console.error(`❌ Insufficient balance: ${user.walletBalance} < ${amount}`);
             return res.status(400).json({
                 success: false,
                 message: 'Insufficient balance',
@@ -116,9 +122,9 @@ router.post('/pay', async (req, res) => {
 });
 
 // GET /api/wallet/transactions - Get user transaction history
-router.get('/transactions', async (req, res) => {
+router.get('/transactions', authMiddleware, async (req, res) => {
     try {
-        const { email } = req.query;
+        const email = req.user.email;
 
         if (!email) {
             return res.status(400).json({ success: false, message: 'Email required' });
@@ -136,9 +142,9 @@ router.get('/transactions', async (req, res) => {
 });
 
 // POST /api/wallet/transfer - Transfer balance between users
-router.post('/transfer', async (req, res) => {
+router.post('/transfer', authMiddleware, async (req, res) => {
     try {
-        const { fromEmail, toEmail, amount, description } = req.body;
+        const { toEmail, amount, description } = req.body; const fromEmail = req.user.email;
 
         if (!fromEmail || !toEmail || !amount) {
             return res.status(400).json({ success: false, message: 'Source, destinataire et montant requis' });
