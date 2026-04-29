@@ -285,7 +285,7 @@
       "email": "expediteur@test.com",
       "password": "123",
       "role": "expediteur",
-      "walletBalance": 0,
+      "walletBalance": 154000,
       "joined": "2026-03-12",
       "transactions": []
     },
@@ -314,7 +314,7 @@
       "email": "admin@trymyday.com",
       "password": "$2b$10$pajAmRDwboKaAKP1Sax4q.Pzc5.QcWLRjcpRPHIkeCuIp2RpjQtcC",
       "role": "admin",
-      "walletBalance": 0,
+      "walletBalance": 154000,
       "joined": "2026-04-24",
       "transactions": []
     },
@@ -324,7 +324,7 @@
       "email": "manager@trymyday.com",
       "password": "Manager@TryMyDay2026!",
       "role": "manager",
-      "walletBalance": 0,
+      "walletBalance": 154000,
       "joined": "2026-04-24",
       "transactions": []
     },
@@ -334,7 +334,7 @@
       "email": "distributor@trymyday.com",
       "password": "Distrib@TryMyDay2026!",
       "role": "expediteur",
-      "walletBalance": 0,
+      "walletBalance": 154000,
       "joined": "2026-04-24",
       "transactions": []
     },
@@ -344,7 +344,7 @@
       "email": "soumamoussa123@gmail.com",
       "password": "$2b$10$xGOyaKHxoUY8ABoUs5IKFuSBlsTqm2kh53sKUq1.uTq8O.vyLGIDi",
       "role": "client",
-      "walletBalance": 0,
+      "walletBalance": 154000,
       "joined": "2026-04-26",
       "transactions": []
     }
