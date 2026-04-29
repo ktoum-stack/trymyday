@@ -335,7 +335,7 @@ export const DataProvider = ({ children }) => {
     const adminDeleteUser = async (email) => {
         try {
             setUsers(prev => prev.filter(u => u.email !== email));
-            const response = await authFetch(`${API_BASE_URL}/api/admin/users/${email}`, {
+            const response = await authFetch(`${API_BASE_URL}/api/admin/users/${encodeURIComponent(email)}`, {
                 method: 'DELETE'
             });
             return response.ok;
@@ -393,3 +393,4 @@ const authFetch = async (url, options = {}) => {
     }
     return fetch(url, options);
 };
+

@@ -322,9 +322,9 @@ router.put('/users/:id', async (req, res) => {
 });
 
 // DELETE /api/admin/users/:email - Delete user (Admin only)
-router.delete('/users/:email', authMiddleware, adminMiddleware, async (req, res) => {
+router.delete('/users/:email(*)', authMiddleware, adminMiddleware, async (req, res) => {
     try {
-        const { email } = req.params;
+        const email = decodeURIComponent(req.params.email);
         const users = await getUsers();
         const initialCount = users.length;
 
