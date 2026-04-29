@@ -64,14 +64,12 @@ const NavigationWrapper = () => {
     const isHelpPage = location.pathname === '/help';
     const isCartPage = location.pathname === '/cart' || location.pathname === '/checkout';
     
-    // Always hide on Admin
-    if (isAdminRoute) return null;
-    
     // On Login/Register, show ONLY on desktop
     if (isLoginPage) return <div className="d-none d-md-block w-100"><Navigation /></div>;
     
-    // Hide ONLY on mobile for Profile/Help/Cart (d-none d-md-block shows it on desktop)
-    if (isProfileRoute || isHelpPage || isCartPage) return <div className="d-none d-md-block w-100"><Navigation /></div>;
+    // Hide ONLY on mobile for Admin/Profile/Help/Cart (d-none d-md-block shows it on desktop)
+    if (isAdminRoute || isProfileRoute || isHelpPage || isCartPage) return <div className="d-none d-md-block w-100"><Navigation /></div>;
+    
     return <Navigation />;
 };
 

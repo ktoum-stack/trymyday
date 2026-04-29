@@ -11,7 +11,7 @@ export const messages = {
       brands: "MARQUES",
       gift_ideas: "IDÉES CADEAUX",
       collections: "COLLECTIONS",
-      favorites: "COUPS DE CŒUR",
+      favorites: "FAVORIS",
       best_sellers: "MEILLEURES VENTES",
       search_placeholder: "Chercher un produit...",
       hello: "Bonjour",

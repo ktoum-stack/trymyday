@@ -229,8 +229,8 @@ const Navigation = () => {
 
                             {/* Cart Action (Desktop Only) */}
                             <Link to="/cart" className="text-dark text-decoration-none d-none d-md-flex align-items-center action-item px-1 px-md-2 py-1 transition-all">
-                                <div className="position-relative me-xl-1">
-                                    <i className="bi bi-cart3 fs-4 fs-md-5" style={{ color: '#ff6000' }}></i>
+                                <div className="position-relative me-xl-1 d-flex align-items-center">
+                                    <i className="bi bi-cart3 fs-4" style={{ color: '#ff6000' }}></i>
                                     <Badge
                                         bg="danger"
                                         pill
@@ -322,7 +322,7 @@ const Navigation = () => {
                                 align="end"
                                 title={
                                     <div className="d-flex align-items-center action-item px-1 px-md-2 py-1 rounded-2 transition-all">
-                                        <i className="bi bi-translate fs-4 fs-md-5" style={{ color: '#ff6000' }}></i>
+                                        <i className="bi bi-translate fs-4" style={{ color: '#ff6000' }}></i>
                                         <span className="fw-bold text-dark d-none d-xl-inline" style={{ fontSize: '0.75rem' }}>{language}</span>
                                     </div>
                                 }

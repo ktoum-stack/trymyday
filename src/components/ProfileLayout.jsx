@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, ListGroup, Badge, Modal, Button, Offcanvas }
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useWallet } from '../context/WalletContext';
 
 const ProfileLayout = ({ children }) => {
     const { user, logout, updateUser } = useAuth();
@@ -11,6 +12,7 @@ const ProfileLayout = ({ children }) => {
     const navigate = useNavigate();
     const { t } = useLanguage();
     const location = useLocation();
+    const { balance } = useWallet();
     const [notificationsCount, setNotificationsCount] = useState(0);
 
     const fetchProfileNotifications = async () => {
@@ -150,7 +152,7 @@ const ProfileLayout = ({ children }) => {
                             <div className="d-flex align-items-center" style={{ minWidth: 0, flex: 1 }}>
                                 <i className="bi bi-wallet2 me-2 text-dark" style={{ fontSize: '0.8rem' }}></i>
                                 <small className="text-truncate fw-bold text-dark" style={{ fontSize: '0.75rem' }}>
-                                    {showBalance ? `${(user?.balance || 0).toLocaleString()} FCFA` : '---'}
+                                    {showBalance ? `${(balance !== undefined ? balance : 0).toLocaleString()} FCFA` : '---'}
                                 </small>
                             </div>
                             <i

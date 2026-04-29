@@ -176,8 +176,8 @@ const AdminWalletManagement = () => {
     useEffect(() => {
         if (isIdVirement && directUserId) {
             const user = users.find(u =>
-                (u.phone && String(u.phone).includes(directUserId)) ||
-                (u.id && String(u.id).toLowerCase() === directUserId.toLowerCase())
+                (u.phone && String(u.phone).includes(directUserId.trim())) ||
+                (u.id && String(u.id).toLowerCase() === directUserId.trim().toLowerCase())
             );
             setFoundUser(user || null);
         } else {
@@ -541,7 +541,7 @@ const AdminWalletManagement = () => {
                                             <Badge bg="warning" text="dark" className="small">ID: {(isIdVirement ? foundUser.id : selectedUser.id)}</Badge>
                                         </div>
                                         <div className="mt-1">
-                                            <small className="fw-bold text-dark">Solde actuel: {((isIdVirement ? foundUser.balance : selectedUser.balance) || 0).toLocaleString()} FCFA</small>
+                                            <small className="fw-bold text-dark">Solde actuel: {((isIdVirement ? foundUser.walletBalance : selectedUser.walletBalance) || 0).toLocaleString()} FCFA</small>
                                         </div>
                                     </div>
                                     {isIdVirement && (
