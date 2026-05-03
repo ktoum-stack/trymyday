@@ -21,47 +21,58 @@ const AppBottomNav = () => {
     return (
         <div className="d-md-none fixed-bottom bg-white border-top shadow-sm" style={{ zIndex: 1020, paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <div className="d-flex justify-content-around align-items-center" style={{ height: '60px' }}>
-                <NavLink to="/" className={({ isActive }) => `text-decoration-none d-flex flex-column align-items-center justify-content-center w-100 h-100 ${isActive ? 'text-warning' : 'text-muted'}`}>
-                    <i className="bi bi-house fs-4 mb-1" style={{ lineHeight: 1 }}></i>
-                    <span style={{ fontSize: '0.62rem', fontWeight: '500' }}>{t('nav.home')}</span>
+                <NavLink to="/" className={({ isActive }) => `text-decoration-none d-flex flex-column align-items-center justify-content-center w-100 h-100 transition-all ${isActive ? 'text-warning' : 'text-muted'}`}>
+                    {({ isActive }) => (
+                        <>
+                            <i className={`bi ${isActive ? 'bi-house-fill' : 'bi-house'} fs-4 mb-1`} style={{ lineHeight: 1, transform: isActive ? 'scale(1.1)' : 'scale(1)' }}></i>
+                            <span style={{ fontSize: '0.65rem', fontWeight: isActive ? '600' : '500' }}>{t('nav.home')}</span>
+                        </>
+                    )}
                 </NavLink>
 
-                <NavLink to="/shop" className={({ isActive }) => `text-decoration-none d-flex flex-column align-items-center justify-content-center w-100 h-100 ${isActive ? 'text-warning' : 'text-muted'}`}>
-                    <i className="bi bi-shop fs-4 mb-1" style={{ lineHeight: 1 }}></i>
-                    <span style={{ fontSize: '0.62rem', fontWeight: '500' }}>{t('nav.shop')}</span>
-                </NavLink>
-
-                <NavLink to="/shop?cat=Flash" className={({ isActive }) => `text-decoration-none d-flex flex-column align-items-center justify-content-center w-100 h-100 ${isActive ? 'text-danger fw-bold' : 'text-danger text-opacity-75'}`}>
-                    <i className="bi bi-lightning-fill fs-4 mb-1" style={{ lineHeight: 1 }}></i>
-                    <span style={{ fontSize: '0.62rem', fontWeight: '500' }}>{t('nav.flash')}</span>
+                <NavLink to="/shop" className={({ isActive }) => `text-decoration-none d-flex flex-column align-items-center justify-content-center w-100 h-100 transition-all ${isActive ? 'text-warning' : 'text-muted'}`}>
+                    {({ isActive }) => (
+                        <>
+                            <i className={`bi ${isActive ? 'bi-grid-fill' : 'bi-grid'} fs-4 mb-1`} style={{ lineHeight: 1, transform: isActive ? 'scale(1.1)' : 'scale(1)' }}></i>
+                            <span style={{ fontSize: '0.65rem', fontWeight: isActive ? '600' : '500' }}>{t('nav.shop')}</span>
+                        </>
+                    )}
                 </NavLink>
 
                 <div 
                     onClick={() => setShowSelections(true)} 
-                    className={`text-decoration-none d-flex flex-column align-items-center justify-content-center w-100 h-100 ${showSelections ? 'text-warning' : 'text-muted'}`}
+                    className={`text-decoration-none d-flex flex-column align-items-center justify-content-center w-100 h-100 transition-all ${showSelections ? 'text-warning' : 'text-muted'}`}
                     style={{ cursor: 'pointer' }}
                 >
                     <div className="position-relative">
-                        <i className="bi bi-star fs-4 mb-1" style={{ lineHeight: 1 }}></i>
+                        <i className={`bi ${showSelections ? 'bi-star-fill' : 'bi-star'} fs-4 mb-1`} style={{ lineHeight: 1, transform: showSelections ? 'scale(1.1)' : 'scale(1)' }}></i>
                     </div>
-                    <span style={{ fontSize: '0.62rem', fontWeight: '500' }}>{t('nav.selections')}</span>
+                    <span style={{ fontSize: '0.65rem', fontWeight: showSelections ? '600' : '500' }}>{t('nav.selections')}</span>
                 </div>
 
-                <NavLink to="/cart" className={({ isActive }) => `text-decoration-none d-flex flex-column align-items-center justify-content-center w-100 h-100 position-relative ${isActive ? 'text-warning' : 'text-muted'}`}>
-                    <div className="position-relative">
-                        <i className="bi bi-cart3 fs-4 mb-1" style={{ lineHeight: 1 }}></i>
-                        {getCartCount() > 0 && (
-                            <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: '0.5rem', padding: '0.2rem 0.35rem' }}>
-                                {getCartCount()}
-                            </span>
-                        )}
-                    </div>
-                    <span style={{ fontSize: '0.62rem', fontWeight: '500' }}>{t('nav.cart')}</span>
+                <NavLink to="/cart" className={({ isActive }) => `text-decoration-none d-flex flex-column align-items-center justify-content-center w-100 h-100 position-relative transition-all ${isActive ? 'text-warning' : 'text-muted'}`}>
+                    {({ isActive }) => (
+                        <>
+                            <div className="position-relative">
+                                <i className={`bi ${isActive ? 'bi-cart-fill' : 'bi-cart3'} fs-4 mb-1`} style={{ lineHeight: 1, transform: isActive ? 'scale(1.1)' : 'scale(1)' }}></i>
+                                {getCartCount() > 0 && (
+                                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm" style={{ fontSize: '0.55rem', padding: '0.2rem 0.35rem', border: '2px solid white' }}>
+                                        {getCartCount()}
+                                    </span>
+                                )}
+                            </div>
+                            <span style={{ fontSize: '0.65rem', fontWeight: isActive ? '600' : '500' }}>{t('nav.cart')}</span>
+                        </>
+                    )}
                 </NavLink>
 
-                <NavLink to="/profile" className={({ isActive }) => `text-decoration-none d-flex flex-column align-items-center justify-content-center w-100 h-100 ${isActive ? 'text-warning' : 'text-muted'}`}>
-                    <i className="bi bi-person fs-4 mb-1" style={{ lineHeight: 1 }}></i>
-                    <span style={{ fontSize: '0.62rem', fontWeight: '500' }}>{t('nav.profile')}</span>
+                <NavLink to="/profile" className={({ isActive }) => `text-decoration-none d-flex flex-column align-items-center justify-content-center w-100 h-100 transition-all ${isActive ? 'text-warning' : 'text-muted'}`}>
+                    {({ isActive }) => (
+                        <>
+                            <i className={`bi ${isActive ? 'bi-person-fill' : 'bi-person'} fs-4 mb-1`} style={{ lineHeight: 1, transform: isActive ? 'scale(1.1)' : 'scale(1)' }}></i>
+                            <span style={{ fontSize: '0.65rem', fontWeight: isActive ? '600' : '500' }}>{t('nav.profile')}</span>
+                        </>
+                    )}
                 </NavLink>
             </div>
 

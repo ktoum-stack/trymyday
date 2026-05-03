@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs').promises;
 const path = require('path');
 const { sendEmail, emailTemplates } = require('../utils/emailService');
+const { getFileData, saveFileData } = require('../supabaseDb');
 
-const USERS_FILE = path.join(__dirname, '../data/users.json');
+const USERS_FILE = 'users.json';
 
 async function getUsers() {
     try {
-        const data = await fs.readFile(USERS_FILE, 'utf8');
+        const data = await getFileData(USERS_FILE, '{"users":[]}');
         return JSON.parse(data).users;
     } catch (error) {
         return [];
@@ -16,7 +16,7 @@ async function getUsers() {
 }
 
 async function saveUsers(users) {
-    await fs.writeFile(USERS_FILE, JSON.stringify({ users }, null, 2));
+    await saveFileData(USERS_FILE, JSON.stringify({ users }, null, 2));
 }
 
 // POST /api/auth/register

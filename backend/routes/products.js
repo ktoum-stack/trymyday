@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs').promises;
 const path = require('path');
 const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleware');
+const { getFileData, saveFileData } = require('../supabaseDb');
 
-const PRODUCTS_FILE = path.join(__dirname, '../data/products.json');
+const PRODUCTS_FILE = 'products.json';
 
 // Helper to read products
 async function getProducts() {
     try {
-        const data = await fs.readFile(PRODUCTS_FILE, 'utf8');
+        const data = await getFileData(PRODUCTS_FILE, '{"products":[]}');
         return JSON.parse(data).products;
     } catch (error) {
         // If file doesn't exist or error, return empty array
@@ -19,7 +19,7 @@ async function getProducts() {
 
 // Helper to save products
 async function saveProducts(products) {
-    await fs.writeFile(PRODUCTS_FILE, JSON.stringify({ products }, null, 2));
+    await saveFileData(PRODUCTS_FILE, JSON.stringify({ products }, null, 2));
 }
 
 // GET /api/products - Get all products

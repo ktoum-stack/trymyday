@@ -1,16 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs').promises;
 const path = require('path');
 const { sendEmail, emailTemplates } = require('../utils/emailService');
 const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleware');
+const { getFileData, saveFileData } = require('../supabaseDb');
 
-const ORDERS_FILE = path.join(__dirname, '../data/orders.json');
+const ORDERS_FILE = 'orders.json';
 
 // Helper to read orders
 async function getOrders() {
     try {
-        const data = await fs.readFile(ORDERS_FILE, 'utf8');
+        const data = await getFileData(ORDERS_FILE, '{"orders":[]}');
         return JSON.parse(data).orders;
     } catch (error) {
         return [];
@@ -19,7 +19,7 @@ async function getOrders() {
 
 // Helper to save orders
 async function saveOrders(orders) {
-    await fs.writeFile(ORDERS_FILE, JSON.stringify({ orders }, null, 2));
+    await saveFileData(ORDERS_FILE, JSON.stringify({ orders }, null, 2));
 }
 
 // GET /api/orders - Get all orders

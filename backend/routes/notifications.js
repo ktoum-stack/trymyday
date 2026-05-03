@@ -1,15 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const { authMiddleware, adminMiddleware } = require('../middleware/authMiddleware');
-const fs = require('fs').promises;
 const path = require('path');
+const { getFileData, saveFileData } = require('../supabaseDb');
 
-const NOTIFICATIONS_FILE = path.join(__dirname, '../data/notifications.json');
+const NOTIFICATIONS_FILE = 'notifications.json';
 
 // Helper function to read notifications
 async function getNotifications() {
     try {
-        const data = await fs.readFile(NOTIFICATIONS_FILE, 'utf8');
+        const data = await getFileData(NOTIFICATIONS_FILE, '{"notifications":[]}');
         return JSON.parse(data).notifications;
     } catch (error) {
         return [];
@@ -18,7 +18,7 @@ async function getNotifications() {
 
 // Helper function to save notifications
 async function saveNotifications(notifications) {
-    await fs.writeFile(NOTIFICATIONS_FILE, JSON.stringify({ notifications }, null, 2));
+    await saveFileData(NOTIFICATIONS_FILE, JSON.stringify({ notifications }, null, 2));
 }
 
 // PUT /api/notifications/user/:userId/read-all - Mark all unread notifications as read for a user
