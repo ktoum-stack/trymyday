@@ -1,0 +1,33 @@
+name: iOS App Build
+
+on:
+  workflow_dispatch: # Permet de lancer la compilation manuellement depuis GitHub
+
+jobs:
+  build:
+    name: Compiler pour iOS
+    runs-on: macos-latest # On utilise un Mac virtuel gratuit fourni par GitHub
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v3
+
+      - name: Préparer Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Installer les dépendances
+        run: npm install
+
+      - name: Construire l'application Web (React)
+        run: npm run build
+
+      - name: Synchroniser avec Capacitor iOS
+        run: npx cap sync ios
+
+      - name: Information Apple Developer
+        run: |
+          echo "L'application iOS est prête à être compilée !"
+          echo "Cependant, Apple exige un compte Apple Developer (Certificats et Provisioning Profiles) pour créer le fichier .ipa final."
+          echo "Une fois les certificats configurés dans les Secrets GitHub, nous pourrons utiliser Fastlane pour signer l'application."
